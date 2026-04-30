@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Chat Client Design System - Modern gradients and beautiful colors */
+
+@layer base {
+  :root {
+    /* Main background - Deep gradient */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Chat interface colors */
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 5% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary - Electric blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 217 91% 70%;
+
+    /* Secondary - Deep slate */
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted - Subtle grays */
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 64%;
+
+    /* Accent - Purple highlight */
+    --accent: 270 91% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    /* User message - Warm gradient */
+    --user-message: 217 91% 60%;
+    --user-message-foreground: 0 0% 98%;
+
+    /* AI message - Cool tone */
+    --ai-message: 240 6% 10%;
+    --ai-message-foreground: 0 0% 90%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 20%;
+    --input: 240 6% 10%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Custom gradients */
+    --gradient-bg: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(260 10% 4.9%) 50%, hsl(240 10% 3.9%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(270 91% 65%) 100%);
+    --gradient-user: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 70%) 100%);
+    --gradient-ai: linear-gradient(135deg, hsl(240 6% 10%) 0%, hsl(240 4% 16%) 100%);
+    
+    /* Shadows with primary color */
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.5), 0 0 80px hsl(217 91% 60% / 0.3);
+    --shadow-card: 0 4px 20px hsl(240 10% 3.9% / 0.4);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Main background - Keep dark theme */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Chat interface colors */
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 5% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary - Electric blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 217 91% 70%;
+
+    /* Secondary - Deep slate */
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted - Subtle grays */
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 64%;
+
+    /* Accent - Purple highlight */
+    --accent: 270 91% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    /* User message - Warm gradient */
+    --user-message: 217 91% 60%;
+    --user-message-foreground: 0 0% 98%;
+
+    /* AI message - Cool tone */
+    --ai-message: 240 6% 10%;
+    --ai-message-foreground: 0 0% 90%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 20%;
+    --input: 240 6% 10%;
+    --ring: 217 91% 60%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* Light theme */
+  :root[class="light"] {
+    /* Main background - Light gradients */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    /* Chat interface colors */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    /* Primary - Electric blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 217 91% 70%;
+
+    /* Secondary - Light slate */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* Muted - Light grays */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent - Purple highlight */
+    --accent: 270 91% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    /* User message - Warm gradient */
+    --user-message: 217 91% 60%;
+    --user-message-foreground: 0 0% 98%;
+
+    /* AI message - Light tone */
+    --ai-message: 210 40% 96%;
+    --ai-message-foreground: 240 10% 3.9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
+
+    /* Update gradients for light theme */
+    --gradient-bg: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 50%, hsl(0 0% 100%) 100%);
+    --gradient-user: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 70%) 100%);
+    --gradient-ai: linear-gradient(135deg, hsl(210 40% 96%) 0%, hsl(210 40% 98%) 100%);
+    
+    /* Shadows for light theme */
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.4), 0 0 80px hsl(217 91% 60% / 0.2);
+    --shadow-card: 0 4px 20px hsl(214.3 31.8% 91.4% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Custom Animations */
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-typing {
+    animation: typing 0.5s ease-out;
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--primary) / 0.5);
+    }
+  }
+  
+  @keyframes typing {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes thinking-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .thinking-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.1) 25%,
+      hsl(var(--primary) / 0.3) 50%,
+      hsl(var(--primary) / 0.1) 75%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: thinking-shimmer 2s ease-in-out infinite;
+  }
+}

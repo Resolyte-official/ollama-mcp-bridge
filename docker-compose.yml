@@ -1,13 +1,44 @@
 services:
-  ollama-mcp-bridge:
+  mcp-host:
+    container_name: mcp-host
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
-      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_URL=http://host.containers.internal:11434
       - CORS_ORIGINS=*
     volumes:
       - ./mcp-config.json:/root/mcp-config.json
     restart: unless-stopped
+    extra_hosts:
+      - "host.containers.internal:host-gateway"
+    depends_on:
+      - db
+
+  db:
+    container_name: postgresdb
+    image: postgres:18.1-alpine
+    environment: 
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password123
+      - DB_PORT=5432
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - .db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro,Z
+    ports:
+      -  5432:5432
+
+  web-ui:
+    container_name: web-ui
+    build:
+      context: ./simple-ollama-chat
+      dockerfile: Dockerfile
+    ports:
+      - "6000:6000"
+    depends_on:
+      - mcp-host
+  
+volumes:
+  pgdata:

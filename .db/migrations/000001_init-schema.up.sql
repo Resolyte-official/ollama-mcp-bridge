@@ -1,0 +1,73 @@
+
+CREATE TABLE IF NOT EXISTS classes (
+    id SERIAL PRIMARY KEY,
+    class_name VARCHAR(20) NOT NULL,
+    section VARCHAR(10),
+    academic_year VARCHAR(9) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS students (
+    id SERIAL PRIMARY KEY,
+    roll_number VARCHAR(20) NOT NULL UNIQUE,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100),
+    date_of_birth DATE,
+    gender VARCHAR(10),
+    parent_mail varchar(100) NOT NULL,
+    class_id INT REFERENCES classes(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS attendance (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    attendance_date DATE NOT NULL,
+    status VARCHAR(10) CHECK (status IN ('Present', 'Absent')),
+    UNIQUE(student_id, attendance_date)
+);
+
+CREATE TABLE IF NOT EXISTS subjects (
+    id SERIAL PRIMARY KEY,
+    subject_name VARCHAR(100) NOT NULL,
+    class_id INT REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS exams (
+    id SERIAL PRIMARY KEY,
+    exam_name VARCHAR(100) NOT NULL,
+    class_id INT REFERENCES classes(id) ON DELETE CASCADE,
+    start_date DATE,
+    end_date DATE,
+    total_marks INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS results (
+    id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(id) ON DELETE CASCADE,
+    exam_id INT REFERENCES exams(id) ON DELETE CASCADE,
+    subject_id INT REFERENCES subjects(id) ON DELETE CASCADE,
+    marks_obtained INT NOT NULL,
+    UNIQUE(student_id, exam_id, subject_id)
+);
+
+CREATE TABLE IF NOT EXISTS departments (
+    id SERIAL PRIMARY KEY,
+    dept_name VARCHAR(80) NOT NULL UNIQUE
+);
+
+CREATE TYPE emp_type AS ENUM (
+    'teacher',
+    'clerk',
+    'admin',
+    'principal'
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+    id SERIAL PRIMARY KEY,
+    emp_id VARCHAR(20) NOT NULL UNIQUE,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100),
+    email VARCHAR(100) NOT NULL,
+    emp_type emp_type NOT NULL,
+    dept_id INT REFERENCES departments(id) ON DELETE SET NULL
+);

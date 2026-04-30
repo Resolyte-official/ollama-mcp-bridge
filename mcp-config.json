@@ -4,7 +4,19 @@
       "command": "uv",
       "args": [
         "--directory",
-        "./mock-weather-mcp-server",
+        "./mcp-servers/mock-weather-mcp-server",
+        "run",
+        "main.py"
+      ],
+      "env": {
+        "MCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "db-query": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "./mcp-servers/db-query-mcp-server",
         "run",
         "main.py"
       ],
