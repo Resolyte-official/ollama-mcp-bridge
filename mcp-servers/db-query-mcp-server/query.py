@@ -13,7 +13,7 @@ def build_select_query(
     table: str,
     projection: List[str],
     where: dict[str, Any] | None = None,
-    joins: List[str] | None = None,
+    joins: List[dict[str, str]] | None = None,
     group_by: List[str] | None = None,
     having: str | None = None,
     order_by: List[str] | None = None,
@@ -21,29 +21,40 @@ def build_select_query(
     offset: int | None = None,
 ) -> Tuple[str, List[Any]]:
 
-    # Validate table
     _validate_identifier(table, "table")
 
-    # Validate projection
     if not projection:
         raise ValueError("projection cannot be empty")
 
     for col in projection:
-        if col != "*" and " " not in col:  # allow "COUNT(*) as c"
+        if col != "*" and " " not in col:
             _validate_identifier(col, "projection column")
 
     sql = f"SELECT {', '.join(projection)} FROM {table}"
 
-    # Joins (controlled but still flexible)
+    # JOIN FIXED
     if joins:
         for j in joins:
-            if not j.upper().startswith(("JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN")):
-                raise ValueError(f"Invalid join clause: {j}")
-        sql += " " + " ".join(joins)
+            if not isinstance(j, dict):
+                raise ValueError("join must be dict")
+
+            join_type = j.get("type", "INNER").upper()
+            join_table = j.get("table")
+            on = j.get("on")
+
+            if join_type not in ("INNER", "LEFT", "RIGHT", "JOIN"):
+                raise ValueError("invalid join type")
+
+            _validate_identifier(join_table, "join table")
+
+            if not isinstance(on, str):
+                raise ValueError("join 'on' must be string")
+
+            sql += f" {join_type} JOIN {join_table} ON {on}"
 
     params: List[Any] = []
 
-    # WHERE (SAFE)
+    # WHERE
     if where:
         conditions = []
         for col, val in where.items():
@@ -67,7 +78,7 @@ def build_select_query(
             _validate_identifier(col, "group_by column")
         sql += " GROUP BY " + ", ".join(group_by)
 
-    # HAVING (restricted)
+    # HAVING
     if having:
         if not group_by:
             raise ValueError("HAVING requires GROUP BY")
@@ -76,7 +87,7 @@ def build_select_query(
     # ORDER BY
     if order_by:
         for col in order_by:
-            if not re.fullmatch(r"[A-Za-z0-9_.]+\s+(ASC|DESC)", col, re.IGNORECASE):
+            if not re.fullmatch(r".+\s+(ASC|DESC)", col, re.IGNORECASE):
                 raise ValueError(f"Invalid order_by: {col}")
         sql += " ORDER BY " + ", ".join(order_by)
 
@@ -93,7 +104,6 @@ def build_select_query(
     return sql, params
 
 import asyncpg
-import re
 
 
 def _convert_placeholders(sql: str) -> str:

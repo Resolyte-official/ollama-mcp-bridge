@@ -30,15 +30,15 @@ services:
     ports:
       -  5432:5432
 
-  web-ui:
-    container_name: web-ui
-    build:
-      context: ./simple-ollama-chat
-      dockerfile: Dockerfile
-    ports:
-      - "6000:6000"
-    depends_on:
-      - mcp-host
+  # web-ui:
+  #   container_name: web-ui
+  #   build:
+  #     context: ./simple-ollama-chat
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "6000:6000"
+  #   depends_on:
+  #     - mcp-host
   
 volumes:
   pgdata:

@@ -71,3 +71,57 @@ CREATE TABLE IF NOT EXISTS employees (
     emp_type emp_type NOT NULL,
     dept_id INT REFERENCES departments(id) ON DELETE SET NULL
 );
+
+
+-- Functions
+
+CREATE OR REPLACE FUNCTION get_student_attendance(p_student_id INT)
+RETURNS TABLE (
+    student_id INT,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    total_days INT,
+    present_days INT,
+    attendance_percentage FLOAT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.id,
+        s.first_name,
+        s.last_name,
+        COUNT(a.*)::INT AS total_days,
+        COUNT(*) FILTER (WHERE a.status = 'Present')::INT AS present_days,
+        (
+            COUNT(*) FILTER (WHERE a.status = 'Present') * 100.0 
+            / NULLIF(COUNT(a.*), 0)
+        )::FLOAT AS attendance_percentage
+    FROM students s
+    LEFT JOIN attendance a ON s.id = a.student_id
+    WHERE s.id = p_student_id
+    GROUP BY s.id, s.first_name, s.last_name;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_low_attendance_students(threshold FLOAT)
+RETURNS TABLE (
+    student_id INT,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    attendance_percentage FLOAT
+)
+AS $$
+    SELECT 
+        s.id,
+        s.first_name,
+        s.last_name,
+        (
+            COUNT(*) FILTER (WHERE a.status = 'Present') * 100.0 / COUNT(*)
+        )::FLOAT AS attendance_percentage
+    FROM students s
+    JOIN attendance a ON s.id = a.student_id
+    GROUP BY s.id, s.first_name, s.last_name
+    HAVING (
+        COUNT(*) FILTER (WHERE a.status = 'Present') * 100.0 / COUNT(*)
+    )::FLOAT < threshold;
+$$ LANGUAGE sql;
