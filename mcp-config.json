@@ -1,17 +1,5 @@
 {
   "mcpServers": {
-    "weather": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "./mcp-servers/mock-weather-mcp-server",
-        "run",
-        "main.py"
-      ],
-      "env": {
-        "MCP_LOG_LEVEL": "ERROR"
-      }
-    },
     "db-query": {
       "command": "uv",
       "args": [
@@ -23,6 +11,9 @@
       "env": {
         "MCP_LOG_LEVEL": "ERROR"
       }
+    },
+    "remote_sse": {
+      "url": "http://mcp-sandbox:8080/sse"
     }
   }
 }

@@ -15,7 +15,10 @@ services:
     extra_hosts:
       - "host.containers.internal:host-gateway"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      mcp-sandbox:
+        condition: service_healthy
 
   db:
     container_name: postgresdb
@@ -29,6 +32,41 @@ services:
       - .db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro,Z
     ports:
       -  5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mcp-sandbox:
+    container_name: mcp-sandbox
+    build:
+      context: mcp-sandbox
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - CORS_ORIGINS=*
+    restart: unless-stopped
+    # Resource limits
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # web-ui:
   #   container_name: web-ui
