@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Data Explorer - Abcdery AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#003fa4",
+                    "secondary": "#0050cc",
+                    "outline-variant": "#c2c6d8",
+                    "surface-container": "#ecedfa",
+                    "on-tertiary-container": "#f8f7ff",
+                    "tertiary": "#0050cb",
+                    "surface-container-low": "#f2f3ff",
+                    "on-secondary-fixed": "#001849",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#dae1ff",
+                    "on-background": "#191b24",
+                    "surface-dim": "#d8d9e6",
+                    "surface-container-highest": "#e1e2ee",
+                    "surface-tint": "#0054d6",
+                    "inverse-primary": "#b3c5ff",
+                    "surface-variant": "#e1e2ee",
+                    "outline": "#727687",
+                    "primary": "#0050cb",
+                    "on-primary-container": "#f8f7ff",
+                    "primary-fixed-dim": "#b3c5ff",
+                    "on-error-container": "#93000a",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed": "#001849",
+                    "on-surface-variant": "#424656",
+                    "surface": "#faf8ff",
+                    "primary-fixed": "#dae1ff",
+                    "on-secondary-fixed-variant": "#003fa4",
+                    "surface-container-high": "#e6e7f4",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed": "#001849",
+                    "surface-bright": "#faf8ff",
+                    "error-container": "#ffdad6",
+                    "secondary-container": "#0266ff",
+                    "on-primary-fixed-variant": "#003fa4",
+                    "on-surface": "#191b24",
+                    "tertiary-container": "#0066ff",
+                    "inverse-on-surface": "#eff0fd",
+                    "tertiary-fixed-dim": "#b3c5ff",
+                    "background": "#faf8ff",
+                    "secondary-fixed-dim": "#b3c5ff",
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2e303a",
+                    "primary-container": "#0066ff",
+                    "on-secondary-container": "#f9f7ff",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#dae1ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "stack-sm": "8px",
+                    "container-max": "1200px",
+                    "section-gap": "64px",
+                    "margin-mobile": "16px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "stack-md": "16px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": [
+                            "Geist"
+                    ],
+                    "body-lg": [
+                            "Geist"
+                    ],
+                    "headline-lg": [
+                            "Geist"
+                    ],
+                    "headline-xl": [
+                            "Geist"
+                    ],
+                    "body-md": [
+                            "Geist"
+                    ],
+                    "title-md": [
+                            "Geist"
+                    ],
+                    "label-md": [
+                            "JetBrains Mono"
+                    ],
+                    "label-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-xl": [
+                            "40px",
+                            {
+                                    "lineHeight": "48px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "title-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.02em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased overflow-x-hidden min-h-screen">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-background h-screen w-64 fixed left-0 top-0 border-r border-black/10 dark:border-white/10 hidden md:flex flex-col py-stack-md z-50">
+<div class="px-gutter mb-stack-lg">
+<div class="flex items-center gap-stack-sm mb-stack-md">
+<div class="w-10 h-10 bg-primary/10 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg font-black text-on-surface dark:text-surface-bright">Abcdery AI</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Academic Intelligence</div>
+</div>
+</div>
+<button class="w-full bg-on-background text-on-primary font-title-md text-title-md py-2 rounded-DEFAULT hover:bg-primary transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined">add</span>
+                New Chat
+            </button>
+</div>
+<ul class="flex flex-col gap-1 px-3 flex-1">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant dark:text-outline hover:bg-primary/5 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant dark:text-outline hover:bg-primary/5 transition-colors" href="index.html">
+<span class="material-symbols-outlined">chat</span>
+                    Chat
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-primary dark:text-tertiary-container font-bold border-r-2 border-primary bg-primary/5" href="data-explorer.html">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">database</span>
+                    Data Explorer
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant dark:text-outline hover:bg-primary/5 transition-colors" href="settings.html">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+<div class="mt-auto px-3 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant dark:text-outline hover:bg-primary/5 transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant dark:text-outline hover:bg-primary/5 transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Log Out
+            </a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface/80 backdrop-blur-md dark:bg-background/80 fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] z-40 border-b border-black/10 dark:border-white/10 flex justify-between items-center h-16 px-gutter transition-opacity duration-200">
+<div class="flex items-center gap-4 md:hidden">
+<span class="material-symbols-outlined text-on-surface">menu</span>
+<div class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-on-surface">Abcdery AI</div>
+</div>
+<div class="hidden md:flex flex-1 items-center max-w-md ml-auto mr-8">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-transparent border border-black/10 rounded-DEFAULT focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-body-md font-body-md placeholder:text-on-surface-variant" placeholder="Search student records..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4 text-primary dark:text-tertiary-container">
+<button class="hover:text-primary dark:hover:text-tertiary-container transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary dark:hover:text-tertiary-container transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-stack-lg px-gutter md:ml-64 max-w-container-max mx-auto w-full">
+<!-- Header & Filters -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-stack-lg gap-4">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-background mb-unit">Student Roster</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">District Wide • Fall Semester 2024</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-DEFAULT font-label-md text-label-md text-on-background hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    Filter
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-DEFAULT font-label-md text-label-md text-on-background hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-on-background text-on-primary rounded-DEFAULT font-label-md text-label-md hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    New Record
+                </button>
+</div>
+</div>
+<!-- Data Table Section -->
+<div class="bg-surface-container-lowest border border-black/10 rounded-lg overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-black/10">
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider w-12">
+<input class="rounded border-black/20 text-primary focus:ring-primary/50" type="checkbox"/>
+</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">Student Name</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">ID Number</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">Grade</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">Attendance</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">GPA</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider">Status</th>
+<th class="py-3 px-4 font-label-sm text-label-sm uppercase text-on-surface-variant font-medium tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="border-b border-black/5 hover:bg-primary/5 transition-colors group">
+<td class="py-3 px-4">
+<input class="rounded border-black/20 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="py-3 px-4 font-medium text-on-background flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary font-label-md text-label-md">ES</div>
+                                Emma Smith
+                            </td>
+<td class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">#90214</td>
+<td class="py-3 px-4">10th</td>
+<td class="py-3 px-4">98%</td>
+<td class="py-3 px-4 font-label-md text-label-md">3.8</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-primary/5 text-primary font-label-sm text-label-sm">On Track</span>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">View Profile</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-black/5 bg-primary/[0.02] hover:bg-primary/5 transition-colors group">
+<td class="py-3 px-4">
+<input class="rounded border-black/20 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="py-3 px-4 font-medium text-on-background flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary font-label-md text-label-md">JD</div>
+                                James Doe
+                            </td>
+<td class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">#90215</td>
+<td class="py-3 px-4">11th</td>
+<td class="py-3 px-4">85%</td>
+<td class="py-3 px-4 font-label-md text-label-md">2.9</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-error/10 text-error font-label-sm text-label-sm">At Risk</span>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">View Profile</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-black/5 hover:bg-primary/5 transition-colors group">
+<td class="py-3 px-4">
+<input class="rounded border-black/20 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="py-3 px-4 font-medium text-on-background flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary font-label-md text-label-md">SJ</div>
+                                Sophia Johnson
+                            </td>
+<td class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">#90216</td>
+<td class="py-3 px-4">9th</td>
+<td class="py-3 px-4">100%</td>
+<td class="py-3 px-4 font-label-md text-label-md">4.0</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-primary/5 text-primary font-label-sm text-label-sm">Honors</span>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">View Profile</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-black/5 bg-primary/[0.02] hover:bg-primary/5 transition-colors group">
+<td class="py-3 px-4">
+<input class="rounded border-black/20 text-primary focus:ring-primary/50" type="checkbox"/>
+</td>
+<td class="py-3 px-4 font-medium text-on-background flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary font-label-md text-label-md">WB</div>
+                                William Brown
+                            </td>
+<td class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">#90217</td>
+<td class="py-3 px-4">12th</td>
+<td class="py-3 px-4">92%</td>
+<td class="py-3 px-4 font-label-md text-label-md">3.4</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-primary/5 text-primary font-label-sm text-label-sm">On Track</span>
+</td>
+<td class="py-3 px-4 text-right">
+<button class="text-primary font-label-md text-label-md opacity-0 group-hover:opacity-100 transition-opacity">View Profile</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="px-4 py-3 border-t border-black/10 flex items-center justify-between bg-surface-container-lowest">
+<div class="font-label-md text-label-md text-on-surface-variant">
+                    Showing 1 to 4 of 1,240 records
+                </div>
+<div class="flex items-center gap-2">
+<button class="p-1 text-on-surface-variant hover:text-primary disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary/10 text-primary font-label-md text-label-md">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-black/5 text-on-surface-variant font-label-md text-label-md">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-black/5 text-on-surface-variant font-label-md text-label-md">3</button>
+<span class="text-on-surface-variant">...</span>
+<button class="p-1 text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

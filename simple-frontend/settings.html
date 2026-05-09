@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings - Abcdery AI</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Using Inter as a fallback for Geist if not available in standard Google Fonts, standard practice for specific brand fonts without provided URL -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#003fa4",
+                        "secondary": "#0050cc",
+                        "outline-variant": "#c2c6d8",
+                        "surface-container": "#ecedfa",
+                        "on-tertiary-container": "#f8f7ff",
+                        "tertiary": "#0050cb",
+                        "surface-container-low": "#f2f3ff",
+                        "on-secondary-fixed": "#001849",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#dae1ff",
+                        "on-background": "#191b24",
+                        "surface-dim": "#d8d9e6",
+                        "surface-container-highest": "#e1e2ee",
+                        "surface-tint": "#0054d6",
+                        "inverse-primary": "#b3c5ff",
+                        "surface-variant": "#e1e2ee",
+                        "outline": "#727687",
+                        "primary": "#0050cb",
+                        "on-primary-container": "#f8f7ff",
+                        "primary-fixed-dim": "#b3c5ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#001849",
+                        "on-surface-variant": "#424656",
+                        "surface": "#faf8ff",
+                        "primary-fixed": "#dae1ff",
+                        "on-secondary-fixed-variant": "#003fa4",
+                        "surface-container-high": "#e6e7f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#001849",
+                        "surface-bright": "#faf8ff",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#0266ff",
+                        "on-primary-fixed-variant": "#003fa4",
+                        "on-surface": "#191b24",
+                        "tertiary-container": "#0066ff",
+                        "inverse-on-surface": "#eff0fd",
+                        "tertiary-fixed-dim": "#b3c5ff",
+                        "background": "#faf8ff",
+                        "secondary-fixed-dim": "#b3c5ff",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2e303a",
+                        "primary-container": "#0066ff",
+                        "on-secondary-container": "#f9f7ff",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#dae1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "stack-sm": "8px",
+                        "container-max": "1200px",
+                        "section-gap": "64px",
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "gutter": "24px",
+                        "stack-md": "16px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "headline-xl": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "title-md": ["Inter", "sans-serif"],
+                        "label-md": ["JetBrains Mono", "monospace"],
+                        "label-sm": ["JetBrains Mono", "monospace"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "title-md": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Base styles for material symbols to ensure correct rendering */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom Utilities to match brand anchors precisely */
+        .academic-input {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.125rem; /* DEFAULT radius */
+            padding: 12px 16px;
+            color: #191b24; /* text-on-surface */
+            transition: all 0.2s ease-in-out;
+        }
+        .academic-input:focus {
+            outline: none;
+            border-color: #0050cb; /* primary */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex selection:bg-primary/20">
+<!-- Shared Component: SideNavBar -->
+<nav class="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface border-r border-black/10 flex-col py-stack-md z-50">
+<!-- Header -->
+<div class="px-gutter mb-stack-lg flex items-center gap-3">
+<div class="w-10 h-10 rounded-DEFAULT bg-primary/10 flex items-center justify-center flex-shrink-0 border border-black/10">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<div>
+<h1 class="font-headline-lg text-[20px] font-black text-on-surface leading-none tracking-tight">Abcdery AI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mt-1 text-[10px]">Academic Intelligence</p>
+</div>
+</div>
+<!-- CTA -->
+<div class="px-gutter mb-stack-md">
+<button class="w-full bg-on-surface text-surface hover:bg-primary hover:text-on-primary transition-colors py-2 px-4 rounded-DEFAULT font-title-md text-[14px] flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Chat
+            </button>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex-1 px-3 space-y-1">
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-primary/5 transition-colors group" href="dashboard.html">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-[15px]">Dashboard</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-primary/5 transition-colors group" href="index.html">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors" data-icon="chat">chat</span>
+<span class="font-body-md text-[15px]">Chat</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-primary/5 transition-colors group" href="data-explorer.html">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors" data-icon="database">database</span>
+<span class="font-body-md text-[15px]">Data Explorer</span>
+</a>
+<!-- Active State Navigation -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-primary font-bold border-r-2 border-primary bg-primary/5 transition-all scale-[0.98]" href="settings.html">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-body-md text-[15px]">Settings</span>
+</a>
+</div>
+<!-- Footer Navigation Tabs -->
+<div class="px-3 mt-auto space-y-1 pt-4 border-t border-black/5">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-primary/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors" data-icon="help">help</span>
+<span class="font-body-md text-[15px]">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-primary/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-error transition-colors" data-icon="logout">logout</span>
+<span class="font-body-md text-[15px]">Log Out</span>
+</a>
+</div>
+</nav>
+<!-- Shared Component: TopAppBar (Desktop) -->
+<header class="hidden md:flex fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-surface/80 backdrop-blur-md h-16 justify-between items-center px-gutter transition-opacity duration-200">
+<!-- TopAppBar is borderless per layout rules, separated by background tonal shift/blur -->
+<div class="flex-1"></div> <!-- Spacer -->
+<div class="flex items-center gap-4">
+<!-- Search Bar on Right -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="bg-transparent border border-black/10 rounded-DEFAULT pl-9 pr-4 py-1.5 font-body-md text-[14px] text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition-all w-48 group-hover:border-black/20" placeholder="Search..." type="text"/>
+</div>
+<!-- Trailing Icons -->
+<button class="text-on-surface-variant hover:text-primary transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/5">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/5">
+<span class="material-symbols-outlined text-[24px]" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Mobile Nav Pattern (Bottom Bar - Suppressed on Desktop) -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface border-t border-black/10 z-50 flex justify-around py-3 pb-safe">
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="dashboard.html">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="font-label-sm text-[10px]">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="settings.html">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-sm text-[10px] font-bold">Settings</span>
+</a>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 pt-6 md:pt-16 pb-24 md:pb-8 min-h-screen flex flex-col">
+<div class="max-w-[1000px] w-full mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg md:py-section-gap flex-1 flex flex-col">
+<!-- Page Header -->
+<div class="mb-stack-lg md:mb-section-gap">
+<h2 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Settings</h2>
+<p class="font-body-lg text-body-lg text-outline mt-2">Manage your account preferences and academic data configurations.</p>
+</div>
+<!-- Settings Layout: Grid -->
+<div class="flex flex-col md:flex-row gap-stack-lg md:gap-gutter flex-1">
+<!-- Left Column: Settings Navigation Menu -->
+<aside class="w-full md:w-56 flex-shrink-0">
+<nav class="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide">
+<!-- Active Category -->
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-DEFAULT bg-primary/5 text-primary font-bold whitespace-nowrap transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-body-md text-[15px]">Profile</span>
+</a>
+<!-- Inactive Categories -->
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-black/5 whitespace-nowrap transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">account_balance</span>
+<span class="font-body-md text-[15px]">School Info</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-black/5 whitespace-nowrap transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+<span class="font-body-md text-[15px]">Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-black/5 whitespace-nowrap transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">shield_lock</span>
+<span class="font-body-md text-[15px]">Security</span>
+</a>
+</nav>
+</aside>
+<!-- Right Column: Form Fields Canvas -->
+<div class="flex-1 max-w-[640px]">
+<div class="bg-surface-container-lowest border border-black/10 rounded-lg p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+<h3 class="font-title-md text-title-md text-on-surface border-b border-black/10 pb-4 mb-6">Profile Information</h3>
+<form class="space-y-6">
+<!-- Form Field: Full Name -->
+<div>
+<label class="block font-label-md text-label-sm uppercase tracking-widest text-outline mb-2" for="fullName">Full Name</label>
+<input class="font-body-md text-body-md academic-input" id="fullName" placeholder="Enter your full name" type="text" value="Dr. Eleanor Vance"/>
+</div>
+<!-- Form Field: Email Address -->
+<div>
+<label class="block font-label-md text-label-sm uppercase tracking-widest text-outline mb-2" for="email">Email Address</label>
+<input class="font-body-md text-body-md academic-input" id="email" placeholder="name@institution.edu" type="email" value="e.vance@abcdery.edu"/>
+</div>
+<!-- Form Field Row: Role & Department -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div>
+<label class="block font-label-md text-label-sm uppercase tracking-widest text-outline mb-2" for="role">Primary Role</label>
+<div class="relative">
+<select class="font-body-md text-body-md academic-input appearance-none cursor-pointer pr-10" id="role">
+<option value="admin">Administrator</option>
+<option selected="" value="faculty">Faculty / Educator</option>
+<option value="researcher">Researcher</option>
+<option value="staff">Support Staff</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block font-label-md text-label-sm uppercase tracking-widest text-outline mb-2" for="department">Department</label>
+<input class="font-body-md text-body-md academic-input" id="department" placeholder="e.g., Mathematics" type="text" value="Data Sciences"/>
+</div>
+</div>
+<!-- Form Field: Bio / Context -->
+<div>
+<label class="block font-label-md text-label-sm uppercase tracking-widest text-outline mb-2" for="bio">Academic Focus</label>
+<textarea class="font-body-md text-body-md academic-input resize-none" id="bio" placeholder="Briefly describe your focus to help Abcdery AI contextualize your queries..." rows="4"></textarea>
+</div>
+<!-- Action Area -->
+<div class="pt-6 border-t border-black/10 mt-8 flex items-center justify-end">
+<button class="bg-primary text-on-primary hover:bg-secondary transition-colors px-6 py-2.5 rounded-DEFAULT font-title-md text-[15px] flex items-center gap-2 shadow-[0_2px_8px_rgba(0,80,203,0.2)]" type="button">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                    Save Changes
+                                </button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
