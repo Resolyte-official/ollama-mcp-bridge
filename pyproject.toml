@@ -17,6 +17,7 @@ dependencies = [
     "packaging>=25.0",
     "typer~=0.24.0",
     "uvicorn~=0.38.0",
+    "asyncpg>=0.29.0",
 ]
 
 [project.urls]
@@ -45,6 +46,7 @@ dev = [
     "pytest>=8.4.1",
     "requests>=2.32.4",
     "black>=24.0.0",
+    "pytest-asyncio>=0.21.1",
 ]
 
 [tool.black]

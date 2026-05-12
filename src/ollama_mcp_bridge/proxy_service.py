@@ -14,26 +14,114 @@ from .mcp_manager import MCPManager
 class ProxyService:
     """Service handling all proxy-related operations to Ollama with or without MCP tools"""
 
-    def __init__(self, mcp_manager: MCPManager):
-        """Initialize the proxy service with an MCP manager."""
+    def __init__(self, mcp_manager: MCPManager, db_pool=None):
+        """Initialize the proxy service with an MCP manager and optional db pool."""
         self.mcp_manager = mcp_manager
+        self.db_pool = db_pool
         is_set, timeout_seconds = get_ollama_proxy_timeout_config()
         # Preserve existing behavior when unset (no timeout for /api/chat). If set, honor it.
         self.http_client = httpx.AsyncClient(timeout=timeout_seconds) if is_set else httpx.AsyncClient(timeout=None)
 
-    def _maybe_prepend_system_prompt(self, messages: list) -> list:
+    async def _get_procedural_memory(self, user_query: str) -> Dict[str, Any]:
+        """Fetch similar procedural memory for a user query."""
+        if not self.db_pool:
+            return {}
+
+        try:
+            # 1. Get embedding for user query
+            embed_payload = {
+                "model": "embeddinggemma",
+                "input": user_query,
+                "dimensions": 768,
+                "options": {"temperature": 0.0, "seed": 1024},
+            }
+            embed_resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}/api/embed", json=embed_payload)
+            embed_resp.raise_for_status()
+            embed_data = embed_resp.json()
+            embedding = embed_data.get("embeddings", [[]])[0]
+
+            if not embedding:
+                return {}
+
+            # Pad or truncate if necessary
+            dimensions = 768
+            if len(embedding) < dimensions:
+                embedding += [0.0] * (dimensions - len(embedding))
+            elif len(embedding) > dimensions:
+                embedding = embedding[:dimensions]
+
+            # 2. Query database for similar memories
+            embedding_str = f"[{','.join(map(str, embedding))}]"
+
+            async with self.db_pool.acquire() as conn:
+                # Top K = 1, threshold = 0.50 based on fetch_embeddings.py
+                row = await conn.fetchrow(
+                    """
+                    SELECT instruction, tool_sequence, constraints, query_examples, 1 - (embedding <=> $1::vector) AS similarity
+                    FROM procedural_memory
+                    WHERE embedding IS NOT NULL
+                    ORDER BY embedding <=> $1::vector
+                    LIMIT 1
+                """,
+                    embedding_str,
+                )
+
+                if row and row["similarity"] >= 0.50:
+                    return {
+                        "instruction": row["instruction"],
+                        "tool_sequence": row["tool_sequence"],
+                        "constraints": row["constraints"],
+                        "query_examples": row["query_examples"],
+                    }
+
+        except Exception as e:
+            logger.error(f"Error fetching procedural memory: {e}")
+
+        return {}
+
+    async def _maybe_prepend_system_prompt(self, messages: list) -> tuple[list, Dict[str, Any]]:
         """If a system prompt is configured on the MCP manager, ensure it is the first message.
+        Also appends any procedural memory instructions based on the user's latest query as a new system message.
 
         Does not duplicate if the first message already has role 'system'.
+        Returns a tuple of (messages, procedural_memory).
         """
         system_prompt = getattr(self.mcp_manager, "system_prompt", None)
-        if not system_prompt:
-            return messages
+        procedural_memory = {}
+        
+        # If messages is empty or first message isn't a system role, prepend base system prompt
+        if system_prompt:
+            if not messages or messages[0].get("role") != "system":
+                messages = [{"role": "system", "content": system_prompt}] + messages
 
-        # If messages is empty or first message isn't a system role, prepend
-        if not messages or messages[0].get("role") != "system":
-            return [{"role": "system", "content": system_prompt}] + messages
-        return messages
+        # Look for the last user message to fetch procedural memory
+        last_user_message = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+        if last_user_message:
+            user_query = last_user_message.get("content", "")
+            if user_query:
+                procedural_memory = await self._get_procedural_memory(user_query)
+                if procedural_memory:
+                    content_parts = []
+                    content_parts.append("Important Note: Only use the following instructions if the intent of the user query matches the following query examples.")
+                    if procedural_memory.get("query_examples"):
+                        qe = procedural_memory['query_examples']
+                        qe_str = json.dumps(qe) if isinstance(qe, (list, dict)) else qe
+                        content_parts.append(f"Query Examples: {qe_str}")
+                    if procedural_memory.get("instruction"):
+                        content_parts.append(f"Instruction: {procedural_memory['instruction']}")
+                    if procedural_memory.get("tool_sequence"):
+                        ts = procedural_memory['tool_sequence']
+                        ts_str = json.dumps(ts) if isinstance(ts, (list, dict)) else ts
+                        content_parts.append(f"Expected Tool Sequence: {ts_str}")
+                    if procedural_memory.get("constraints"):
+                        c = procedural_memory['constraints']
+                        c_str = json.dumps(c) if isinstance(c, (list, dict)) else c
+                        content_parts.append(f"Constraints: {c_str}")
+                    
+                    if len(content_parts) > 1:
+                        messages.append({"role": "system", "content": "\n".join(content_parts)})
+
+        return messages, procedural_memory
 
     async def health_check(self) -> Dict[str, Any]:
         """Check the health of the Ollama server and MCP setup"""
@@ -106,7 +194,7 @@ class ProxyService:
         payload["stream"] = False  # Explicitly disable streaming to get single JSON response
         payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
         messages = payload.get("messages") or []
-        messages = self._maybe_prepend_system_prompt(messages)
+        messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
 
         # Get max tool rounds from app state (None means unlimited)
         max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
@@ -120,6 +208,10 @@ class ProxyService:
             resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}{endpoint}", json=current_payload)
             resp.raise_for_status()
             result = resp.json()
+
+            # Add procedural memory to the final result
+            if procedural_memory:
+                result["_procedural_memory"] = procedural_memory
 
             # Check for tool calls
             tool_calls = self._extract_tool_calls(result)
@@ -140,7 +232,10 @@ class ProxyService:
                 logger.warning(
                     f"Reached maximum tool execution rounds ({max_rounds}), making final LLM call with tool results"
                 )
-                return await self._make_final_llm_call(endpoint, payload, messages)
+                final_result = await self._make_final_llm_call(endpoint, payload, messages)
+                if procedural_memory:
+                    final_result["_procedural_memory"] = procedural_memory
+                return final_result
 
             # Continue loop to get next response
 
@@ -150,7 +245,7 @@ class ProxyService:
         payload = dict(payload)
         payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
         messages = list(payload.get("messages") or [])
-        messages = self._maybe_prepend_system_prompt(messages)
+        messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
 
         async def stream_ollama(payload_to_send):
             async with httpx.AsyncClient(timeout=None) as client:
@@ -163,6 +258,7 @@ class ProxyService:
         # Get max tool rounds from app state (None means unlimited)
         max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
         current_round = 0
+        first_chunk_sent = False
 
         # Loop to handle potentially multiple rounds of tool calls
         while True:
@@ -174,6 +270,10 @@ class ProxyService:
 
             ndjson_iter = iter_ndjson_chunks(stream_ollama(current_payload))
             async for json_obj in ndjson_iter:
+                if not first_chunk_sent and procedural_memory:
+                    json_obj["_procedural_memory"] = procedural_memory
+                    first_chunk_sent = True
+
                 # Stream all chunks directly to the client
                 buffer_chunk = json.dumps(json_obj).encode() + b"\n"
                 yield buffer_chunk
@@ -204,6 +304,8 @@ class ProxyService:
                 )
                 # Stream the final LLM response with tool results (no more tools allowed)
                 async for chunk in self._stream_final_llm_call(stream_ollama, payload, messages):
+                    # We might need to inject it here if we never yielded a chunk, but usually we did
+                    # in the first round. We'll just yield it.
                     yield chunk
                 break
 

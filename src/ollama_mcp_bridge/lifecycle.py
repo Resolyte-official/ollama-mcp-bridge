@@ -8,19 +8,30 @@ from loguru import logger
 from .mcp_manager import MCPManager
 from .proxy_service import ProxyService
 from .utils import check_for_updates
+from .db import new_db_config, new_db_pool
 from . import __version__
 
 # Global services that will be initialized in lifespan
 mcp_manager: MCPManager = None
 proxy_service: ProxyService = None
+db_pool = None
 
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     """FastAPI lifespan events"""
-    global mcp_manager, proxy_service
+    global mcp_manager, proxy_service, db_pool
 
     try:
+        # Initialize db pool
+        db_pool = None
+        try:
+            db_config = new_db_config()
+            db_pool = await new_db_pool(db_config)
+            logger.info("Database pool initialized for procedural memory.")
+        except Exception as e:
+            logger.warning(f"Could not initialize database pool. Procedural memory will be disabled: {e}")
+
         # Get config from app state with explicit defaults
         config_file = getattr(fastapi_app.state, "config_file", "mcp-config.json")
         ollama_url = getattr(fastapi_app.state, "ollama_url", "http://localhost:11434")
@@ -38,7 +49,7 @@ async def lifespan(fastapi_app: FastAPI):
         await mcp_manager.load_servers(config_file)
 
         # Initialize services
-        proxy_service = ProxyService(mcp_manager)
+        proxy_service = ProxyService(mcp_manager, db_pool)
 
         # Check for updates (messages will be logged automatically)
         await check_for_updates(__version__)
@@ -49,11 +60,17 @@ async def lifespan(fastapi_app: FastAPI):
         # Reset globals on failed startup
         mcp_manager = None
         proxy_service = None
+        if db_pool:
+            await db_pool.close()
+            db_pool = None
         raise
     except Exception as e:
         logger.error(f"Unexpected error during startup: {str(e)}")
         mcp_manager = None
         proxy_service = None
+        if db_pool:
+            await db_pool.close()
+            db_pool = None
         raise
 
     yield
@@ -74,9 +91,13 @@ async def lifespan(fastapi_app: FastAPI):
     except (IOError, ConnectionError, TimeoutError) as e:
         logger.error(f"Error during MCP manager cleanup: {str(e)}")
 
+    if db_pool:
+        await db_pool.close()
+
     # Reset globals
     mcp_manager = None
     proxy_service = None
+    db_pool = None
     logger.info("Shutdown complete")
 
 

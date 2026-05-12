@@ -22,7 +22,7 @@ services:
 
   db:
     container_name: postgresdb
-    image: postgres:18.1-alpine
+    image: pgvector/pgvector:pg18-trixie
     environment: 
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password123
@@ -67,16 +67,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-
-  # web-ui:
-  #   container_name: web-ui
-  #   build:
-  #     context: ./simple-ollama-chat
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "6000:6000"
-  #   depends_on:
-  #     - mcp-host
   
 volumes:
   pgdata:

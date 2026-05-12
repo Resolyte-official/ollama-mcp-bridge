@@ -20,6 +20,7 @@ curl -X POST "http://127.0.0.1:8000/api/chat" \
     "think": false,
     "stream": false,
     "options": {
+      "seed": 1024,
       "temperature": 0.0,
       "top_p": 0.9
     }
@@ -47,6 +48,7 @@ curl -X POST "http://127.0.0.1:8000/api/chat" \
 #     "think": false,
 #     "stream": false,
 #     "options": {
+#       "seed": 1024,
 #       "temperature": 0.0,
 #       "top_p": 0.9
 #     }

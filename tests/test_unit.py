@@ -10,6 +10,11 @@ import tempfile
 import sys
 from pathlib import Path
 
+import pytest
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
 # Add src directory to path for testing when package is not installed
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -178,7 +183,8 @@ def test_script_installed():
         assert False, f"Subprocess call failed. Is the script installed? {e}"
 
 
-def test_system_prompt_prepended():
+@pytest.mark.asyncio
+async def test_system_prompt_prepended():
     """Test that the system prompt configured on MCPManager is prepended to messages."""
     try:
         from ollama_mcp_bridge.mcp_manager import MCPManager
@@ -191,25 +197,48 @@ def test_system_prompt_prepended():
     mgr = MCPManager(system_prompt="You are a helpful assistant.")
     ps = ProxyService(mgr)
 
+    # Mock procedural memory function for testing
+    async def mock_get_procedural(user_query):
+        if user_query == "proc test":
+            return "This is a procedural instruction."
+        return ""
+
+    ps._get_procedural_memory_instruction = mock_get_procedural
+
     # Case: user message only -> system prompt should be prepended
     messages = [{"role": "user", "content": "Hello"}]
-    out = ps._maybe_prepend_system_prompt(messages)
+    out, proc = await ps._maybe_prepend_system_prompt(messages)
     assert out[0]["role"] == "system"
     assert out[0]["content"] == "You are a helpful assistant."
+    assert proc == ""
 
-    # Case: existing system prompt should not be duplicated or replaced
+    # Case: existing system prompt should be kept
     messages2 = [
         {"role": "system", "content": "Existing"},
         {"role": "user", "content": "Hi"},
     ]
-    out2 = ps._maybe_prepend_system_prompt(messages2)
+    out2, proc2 = await ps._maybe_prepend_system_prompt(messages2)
     assert out2[0]["role"] == "system"
     assert out2[0]["content"] == "Existing"
+    assert proc2 == ""
+
+    # Case: existing system prompt with procedural memory appended
+    messages_proc = [
+        {"role": "system", "content": "Existing"},
+        {"role": "user", "content": "proc test"},
+    ]
+    out_proc, proc_proc = await ps._maybe_prepend_system_prompt(messages_proc)
+    assert out_proc[0]["role"] == "system"
+    assert out_proc[0]["content"] == "Existing"
+    assert out_proc[-1]["role"] == "system"
+    assert out_proc[-1]["content"] == "This is a procedural instruction."
+    assert proc_proc == "This is a procedural instruction."
 
     # Case: empty messages -> system prompt becomes the only message
-    out3 = ps._maybe_prepend_system_prompt([])
+    out3, proc3 = await ps._maybe_prepend_system_prompt([])
     assert out3[0]["role"] == "system"
     assert out3[0]["content"] == "You are a helpful assistant."
+    assert proc3 == ""
 
 
 def test_is_port_in_use():

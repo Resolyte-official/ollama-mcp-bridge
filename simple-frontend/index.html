@@ -111,7 +111,7 @@
         .icon-fill { font-variation-settings: 'FILL' 1; }
         
         /* Custom scrollbar for minimalist feel */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
@@ -206,8 +206,8 @@
 <div class="w-full bg-surface-container-lowest/80 backdrop-blur-xl border-t border-black/5 pt-4 pb-6 px-margin-mobile md:px-gutter z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] shrink-0">
 <div class="max-w-[800px] mx-auto relative group flex flex-col gap-3">
 <div class="relative group w-full">
-<input id="chat-input" class="w-full border border-black/10 rounded-xl py-4 pl-4 pr-16 bg-surface shadow-[0_8px_24px_rgba(0,0,0,0.04)] focus:outline-none focus:border-primary/30 focus:shadow-[0_8px_32px_rgba(0,80,203,0.08)] transition-all font-body-md text-body-md placeholder:text-on-surface-variant/70" placeholder="Type your message..." type="text"/>
-<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+<textarea id="chat-input" rows="1" class="w-full border border-black/10 rounded-xl py-4 pl-4 pr-16 bg-surface shadow-[0_8px_24px_rgba(0,0,0,0.04)] focus:outline-none focus:border-primary/30 focus:shadow-[0_8px_32px_rgba(0,80,203,0.08)] transition-all font-body-md text-body-md placeholder:text-on-surface-variant/70 resize-none block" style="min-height: 58px; max-height: 200px; overflow-y: auto;" placeholder="Type your message..."></textarea>
+<div class="absolute right-2 bottom-2 flex items-center gap-1">
 <button class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/5 transition-colors">
 <span class="material-symbols-outlined text-[20px]">attach_file</span>
 </button>
@@ -436,15 +436,26 @@
         
         messages.forEach(msg => {
             const wrapper = document.createElement('div');
-            wrapper.className = msg.role === 'user' ? 'flex justify-end w-full' : 'flex justify-start w-full';
             
-            if (msg.role === 'user') {
+            if (msg.role === 'system' && msg._is_procedural) {
+                wrapper.className = 'flex justify-center w-full my-2';
+                wrapper.innerHTML = `
+                    <div class="max-w-[85%] md:max-w-[75%] border border-primary/20 bg-primary/5 px-4 py-2 rounded-xl shadow-sm text-center">
+                        <div class="flex items-center justify-center gap-2 text-primary font-bold text-sm mb-1">
+                            <span class="material-symbols-outlined text-[16px]">psychology</span> Procedural Memory Loaded
+                        </div>
+                        <div class="font-body-md text-sm text-on-surface-variant whitespace-pre-wrap">${msg.content}</div>
+                    </div>
+                `;
+            } else if (msg.role === 'user') {
+                wrapper.className = 'flex justify-end w-full';
                 wrapper.innerHTML = `
                     <div class="max-w-[85%] md:max-w-[75%] border border-black/10 p-stack-md rounded-2xl rounded-tr-sm bg-surface-container-lowest shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
                         <div class="font-body-md text-body-md text-on-surface whitespace-pre-wrap">${msg.content}</div>
                     </div>
                 `;
             } else {
+                wrapper.className = 'flex justify-start w-full';
                 let thinkingHtml = '';
                 if (msg.thinking) {
                     thinkingHtml = `
@@ -460,7 +471,7 @@
                         <div class="w-8 h-8 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center text-primary mt-1 border border-primary/20">
                             <span class="material-symbols-outlined text-[18px]">smart_toy</span>
                         </div>
-                        <div class="bg-primary/5 p-stack-md rounded-2xl rounded-tl-sm w-full overflow-hidden prose max-w-none">
+                        <div class="bg-primary/5 p-stack-md rounded-2xl rounded-tl-sm w-full overflow-x-auto prose max-w-none">
                             ${thinkingHtml}
                             <div class="font-body-md text-body-md text-on-surface">${marked.parse(msg.content || '')}</div>
                         </div>
@@ -487,6 +498,7 @@
         // Add user message
         messages.push({ role: 'user', content });
         chatInput.value = '';
+        chatInput.style.height = 'auto';
         saveState();
         renderMessages();
         
@@ -540,6 +552,29 @@
                         const data = JSON.parse(line);
                         let updated = false;
 
+                        if (data._procedural_memory && !assistantMsg._has_added_procedural) {
+                            let content = '';
+                            if (data._procedural_memory.query_examples) {
+                                let val = data._procedural_memory.query_examples;
+                                content += `Query Examples: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
+                            }
+                            if (data._procedural_memory.instruction) content += `Instruction: ${data._procedural_memory.instruction}\n`;
+                            if (data._procedural_memory.tool_sequence) {
+                                let val = data._procedural_memory.tool_sequence;
+                                content += `Tool Sequence: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
+                            }
+                            if (data._procedural_memory.constraints) {
+                                let val = data._procedural_memory.constraints;
+                                content += `Constraints: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
+                            }
+                            
+                            const procMsg = { role: 'system', content: content.trim(), _is_procedural: true };
+                            // Insert before the last element (which is the assistantMsg placeholder)
+                            messages.splice(messages.length - 1, 0, procMsg);
+                            assistantMsg._has_added_procedural = true;
+                            updated = true;
+                        }
+
                         if (data.message && data.message.content) {
                             assistantMsg.content += data.message.content;
                             updated = true;
@@ -568,8 +603,19 @@
     }
 
     sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if (this.value === '') {
+            this.style.height = 'auto';
+        }
     });
 
 </script>
