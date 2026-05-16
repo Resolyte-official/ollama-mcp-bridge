@@ -173,7 +173,20 @@ class ProxyService:
         final_payload["tools"] = None  # Don't allow more tool calls
         resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}{endpoint}", json=final_payload)
         resp.raise_for_status()
-        return resp.json()
+        result = resp.json()
+        
+        import re
+        content = result.get("message", {}).get("content", "")
+        if content:
+            file_refs = re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", content)
+            for file_id in file_refs:
+                if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
+                    file_info = self.mcp_manager.file_store[file_id]
+                    mime_type = file_info["mime_type"]
+                    data = file_info["data"]
+                    result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
+                    
+        return result
 
     async def _stream_final_llm_call(
         self, stream_ollama, payload: Dict[str, Any], messages: list
@@ -183,10 +196,28 @@ class ProxyService:
         final_payload["messages"] = messages
         final_payload["tools"] = None  # Don't allow more tool calls
 
+        response_text = ""
+        done_chunk = None
+
         ndjson_iter = iter_ndjson_chunks(stream_ollama(final_payload))
         async for json_obj in ndjson_iter:
-            buffer_chunk = json.dumps(json_obj).encode() + b"\n"
-            yield buffer_chunk
+            msg_content = json_obj.get("message", {}).get("content", "")
+            if msg_content:
+                response_text += msg_content
+
+            if json_obj.get("done"):
+                done_chunk = json_obj
+                break
+            else:
+                if msg_content and "[FILE_REF:" in msg_content:
+                    pass
+                elif msg_content and "]" in msg_content and response_text.count("[FILE_REF:") > response_text.count("]"):
+                    pass
+                else:
+                    yield (json.dumps(json_obj) + "\n").encode()
+
+        if done_chunk:
+            yield (json.dumps(done_chunk) + "\n").encode()
 
     async def _proxy_with_tools_non_streaming(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle non-streaming chat requests with tools"""
@@ -216,7 +247,31 @@ class ProxyService:
             # Check for tool calls
             tool_calls = self._extract_tool_calls(result)
             if not tool_calls:
-                # No more tool calls, return final result
+                # No more tool calls, check for files to append
+                import re
+                
+                # We need to collect file refs from ALL tool messages in this request,
+                # as well as the final assistant content, to ensure we don't miss any if the LLM drops them.
+                all_contents = [str(m.get("content", "")) for m in messages if m.get("role") == "tool"]
+                content = result.get("message", {}).get("content", "")
+                all_contents.append(content)
+                
+                all_text = " ".join(all_contents)
+                file_refs = list(dict.fromkeys(re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", all_text)))
+                
+                for file_id in file_refs:
+                    if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
+                        file_info = self.mcp_manager.file_store[file_id]
+                        mime_type = file_info["mime_type"]
+                        data = file_info["data"]
+                        if "message" not in result:
+                            result["message"] = {"role": "assistant", "content": ""}
+                        result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
+                
+                # Clean up any leftover raw FILE_REF strings from the text
+                if result.get("message", {}).get("content"):
+                    result["message"]["content"] = re.sub(r"\[FILE_REF:[a-zA-Z0-9-]+\]", "", result["message"]["content"])
+                    
                 return result
 
             # Add assistant's response with tool calls
@@ -267,34 +322,74 @@ class ProxyService:
 
             tool_calls = []
             response_text = ""
+            done_chunk = None
 
             ndjson_iter = iter_ndjson_chunks(stream_ollama(current_payload))
             async for json_obj in ndjson_iter:
+                msg_content = json_obj.get("message", {}).get("content", "")
+                if msg_content:
+                    response_text += msg_content
+
                 if not first_chunk_sent and procedural_memory:
                     json_obj["_procedural_memory"] = procedural_memory
                     first_chunk_sent = True
-
-                # Stream all chunks directly to the client
-                buffer_chunk = json.dumps(json_obj).encode() + b"\n"
-                yield buffer_chunk
 
                 extracted_calls = self._extract_tool_calls(json_obj)
                 if extracted_calls:
                     tool_calls = extracted_calls
 
                 if json_obj.get("done"):
-                    response_text = json_obj.get("message", {}).get("content", "")
-                    if extracted_calls:
-                        tool_calls = extracted_calls
+                    done_chunk = json_obj
                     break
+                else:
+                    if msg_content and "[FILE_REF:" in msg_content:
+                        pass # Skip chunks with file ref parts
+                    elif msg_content and "]" in msg_content and response_text.count("[FILE_REF:") > response_text.count("]"):
+                        pass # Skip chunks that are completing the file ref
+                    else:
+                        yield (json.dumps(json_obj) + "\n").encode()
+
+            if done_chunk:
+                # Do NOT stream the done chunk here, we must only yield it when NO tool calls are found
+                pass
 
             if not tool_calls:
+                if done_chunk:
+                    yield (json.dumps(done_chunk) + "\n").encode()
                 # No tool calls required, streaming complete
                 break
 
             # Tool calls detected; execute them
             messages.append({"role": "assistant", "content": response_text, "tool_calls": tool_calls})
             messages = await self._handle_tool_calls(messages, tool_calls)
+
+            # --- Instantly stream any files generated by the tools to the frontend ---
+            import re
+            tool_contents = [str(m.get("content", "")) for m in messages[-len(tool_calls):]]
+            for i, content in enumerate(tool_contents):
+                file_refs = re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", content)
+                for file_id in file_refs:
+                    if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
+                        file_info = self.mcp_manager.file_store[file_id]
+                        mime_type = file_info["mime_type"]
+                        data = file_info["data"]
+                        
+                        img_chunk = {
+                            "model": current_payload.get("model", "unknown"),
+                            "message": {
+                                "role": "assistant",
+                                "content": f"\n\n![Generated Plot](data:{mime_type};base64,{data})\n\n"
+                            },
+                            "done": False
+                        }
+                        logger.info(f"YIELDING IMAGE CHUNK FOR {file_id}, size: {len(data)}")
+                        yield (json.dumps(img_chunk) + "\n").encode()
+                
+                # Strip FILE_REFs from the message so the LLM doesn't hallucinate paths
+                if file_refs:
+                    strict_msg = "[Image successfully generated and displayed directly to the user. Do NOT output any markdown image tags or file paths in your response. Just briefly summarize what the plot represents.]"
+                    messages[-len(tool_calls) + i]["content"] = re.sub(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", strict_msg, messages[-len(tool_calls) + i]["content"])
+            # -------------------------------------------------------------------------
 
             # Check if we've reached the maximum number of rounds
             current_round += 1

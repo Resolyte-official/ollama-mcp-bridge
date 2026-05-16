@@ -12,7 +12,14 @@
         "MCP_LOG_LEVEL": "ERROR"
       }
     },
-    "remote_sse": {
+    "visualization": {
+      "command": "uvx",
+      "args": [
+        "--from", "./mcp-servers/plotting-mcp",
+        "plotting-mcp", "--transport=stdio"
+      ]
+    },
+    "sandbox": {
       "url": "http://mcp-sandbox:8080/sse"
     }
   }

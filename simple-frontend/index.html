@@ -466,6 +466,11 @@
                     `;
                 }
                 
+                let timeHtml = '';
+                if (msg.timeTaken) {
+                    timeHtml = `<div class="text-xs text-on-surface-variant/60 text-right mt-2"><span class="material-symbols-outlined text-[12px] inline-block align-text-bottom mr-1">timer</span> ${msg.timeTaken}s</div>`;
+                }
+                
                 wrapper.innerHTML = `
                     <div class="flex gap-4 max-w-[95%] md:max-w-[85%]">
                         <div class="w-8 h-8 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center text-primary mt-1 border border-primary/20">
@@ -473,7 +478,7 @@
                         </div>
                         <div class="bg-primary/5 p-stack-md rounded-2xl rounded-tl-sm w-full overflow-x-auto prose max-w-none">
                             ${thinkingHtml}
-                            <div class="font-body-md text-body-md text-on-surface">${marked.parse(msg.content || '')}</div>
+                            <div class="font-body-md text-body-md text-on-surface">${marked.parse(msg.content || '')}${timeHtml}</div>
                         </div>
                     </div>
                 `;
@@ -516,6 +521,8 @@
             apiMessages.push({ role: m.role, content: m.content });
         });
 
+        const startTime = Date.now();
+
         try {
             const response = await fetch(`${url}/api/chat`, {
                 method: 'POST',
@@ -539,15 +546,29 @@
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            let buffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) break;
+                if (done) {
+                    if (buffer.trim()) {
+                        try {
+                            const data = JSON.parse(buffer);
+                            if (data.message && data.message.content) {
+                                assistantMsg.content += data.message.content;
+                                renderMessages();
+                            }
+                        } catch(e) {}
+                    }
+                    break;
+                }
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n').filter(line => line.trim());
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // keep the last partial line in the buffer
 
                 for (const line of lines) {
+                    if (!line.trim()) continue;
                     try {
                         const data = JSON.parse(line);
                         let updated = false;
@@ -593,6 +614,12 @@
                     }
                 }
             }
+            
+            const endTime = Date.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(1);
+            assistantMsg.timeTaken = timeTaken;
+            renderMessages();
+            
             saveState(); // Save final message state when stream is done
         } catch (error) {
             console.error(error);

@@ -2,6 +2,7 @@
 
 import json
 import sys
+import uuid
 from typing import List, Dict
 from contextlib import AsyncExitStack
 import os
@@ -27,6 +28,7 @@ class MCPManager:
         self.all_tools: List[dict] = []
         self.exit_stack = AsyncExitStack()
         self.ollama_url = ollama_url
+        self.file_store = {}
         # Optional system prompt that can be prepended to messages
         self.system_prompt = system_prompt
         is_set, timeout_seconds = get_ollama_proxy_timeout_config()
@@ -210,25 +212,29 @@ class MCPManager:
                 logger.warning(f"Tool {tool_name} returned empty content")
                 return "Tool returned no content"
 
-            # Try to extract text from the first content item
-            first_content = result.content[0]
+            # Process all content items
+            content_parts = []
+            for item in result.content:
+                if hasattr(item, "text"):
+                    content_parts.append(item.text)
+                elif getattr(item, "type", None) == "image" and hasattr(item, "data"):
+                    mime_type = getattr(item, "mimeType", "image/png")
+                    file_id = str(uuid.uuid4())
+                    self.file_store[file_id] = {
+                        "mime_type": mime_type,
+                        "data": item.data
+                    }
+                    content_parts.append(f"[FILE_REF:{file_id}]")
+                elif hasattr(item, "data"):
+                    data = item.data
+                    content_parts.append(json.dumps(data) if isinstance(data, (dict, list)) else str(data))
+                elif hasattr(item, "value"):
+                    val = item.value
+                    content_parts.append(json.dumps(val) if isinstance(val, (dict, list)) else str(val))
+                else:
+                    content_parts.append(str(item))
 
-            # Check for 'text' attribute (standard)
-            if hasattr(first_content, "text"):
-                return first_content.text
-
-            # Fallback: check for other common attributes
-            if hasattr(first_content, "data"):
-                content = first_content.data
-                return json.dumps(content) if isinstance(content, (dict, list)) else str(content)
-
-            if hasattr(first_content, "value"):
-                content = first_content.value
-                return json.dumps(content) if isinstance(content, (dict, list)) else str(content)
-
-            # Last resort: stringify the content item
-            logger.warning(f"Tool {tool_name} content has unexpected structure: {first_content}")
-            return str(first_content)
+            return "\n\n".join(content_parts)
 
         except Exception as e:
             # Catch validation errors from MCP protocol layer (e.g., Pydantic errors from malformed JSON)

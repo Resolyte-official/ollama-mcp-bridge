@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plotting-mcp"
+version = "0.1.0"
+description = "MCP server for generating plots from CSV data"
+authors = [
+    {name = "Alejandro Ponce de León Chávez", email = "aponcedeleonch@stacklok.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "cartopy>=0.24.1",
+    "click>=8.2.1",
+    "matplotlib>=3.10.3",
+    "mcp[cli]>=1.12.2",
+    "pandas>=2.3.1",
+    "seaborn>=0.13.2",
+    "structlog>=25.4.0",
+    "uvicorn[standard]>=0.35.0",
+    "watchfiles>=1.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "ruff>=0.12.5",
+    "ty>=0.0.1a16",
+]
+
+[project.scripts]
+plotting-mcp = "plotting_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+where = ["src/plotting_mcp"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+lint.select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+]
+lint.ignore = []
+
+[tool.ty.src]
+exclude = ["tests"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",
+    "--strict-config",
+    "-v"
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
