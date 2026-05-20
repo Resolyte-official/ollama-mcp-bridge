@@ -6,6 +6,17 @@ CREATE TABLE IF NOT EXISTS classes (
     academic_year VARCHAR(9) NOT NULL
 );
 
+CREATE TYPE address AS (
+    address_line1 VARCHAR(255),
+    locality VARCHAR(100),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    country VARCHAR(100),
+    latitude FLOAT,
+    longitude FLOAT
+);
+
 CREATE TABLE IF NOT EXISTS students (
     id SERIAL PRIMARY KEY,
     roll_number VARCHAR(20) NOT NULL UNIQUE,
@@ -15,6 +26,7 @@ CREATE TABLE IF NOT EXISTS students (
     gender VARCHAR(10),
     parent_mail varchar(100) NOT NULL,
     class_id INT REFERENCES classes(id) ON DELETE CASCADE,
+    address address,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
