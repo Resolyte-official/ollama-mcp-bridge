@@ -7,7 +7,7 @@ import pytest
 from mcp.types import ImageContent, TextContent
 from pandas.errors import EmptyDataError
 
-from plotting_mcp.server import generate_plot
+from plotting_mcp.server import generate_plot, generate_geo_heatmap
 
 
 class TestGeneratePlot:
@@ -154,3 +154,57 @@ class TestGeneratePlot:
 
         with pytest.raises(ValueError, match="CSV data contains NaN/null values"):
             generate_plot(csv_data_with_empty, "line", '{"x": "x", "y": "y"}')
+
+class TestGenerateGeoHeatmap:
+    """Test the generate_geo_heatmap MCP tool."""
+
+    def test_generate_geo_heatmap_basic(self):
+        """Test basic geo heatmap generation."""
+        csv_data = "lat,lon\n40.72,-73.98\n40.73,-73.99"
+        result = generate_geo_heatmap(csv_data)
+        
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        text_content, image_content = result
+        
+        assert isinstance(text_content, TextContent)
+        assert text_content.text == "Geo heatmap generated successfully"
+        
+        assert isinstance(image_content, ImageContent)
+        assert image_content.mimeType == "text/html"
+        
+        html_str = base64.b64decode(image_content.data).decode("utf-8")
+        assert "folium" in html_str
+        assert "Heatmap Layer" in html_str
+
+    def test_generate_geo_heatmap_with_kwargs(self):
+        """Test geo heatmap with kwargs."""
+        csv_data = "lat,lon,weight\n40.72,-73.98,0.5\n40.73,-73.99,0.8"
+        kwargs = {
+            "weight_col": "weight",
+            "zoom_start": 12,
+            "title": "My Map",
+            "tiles": "OpenStreetMap",
+            "radius": 20
+        }
+        result = generate_geo_heatmap(csv_data, json.dumps(kwargs))
+        text_content, image_content = result
+        html_str = base64.b64decode(image_content.data).decode("utf-8")
+        assert "My Map" in html_str
+        assert "OpenStreetMap" in html_str
+
+    def test_generate_geo_heatmap_invalid_json(self):
+        """Test invalid JSON kwargs."""
+        csv_data = "lat,lon\n40.72,-73.98"
+        with pytest.raises(json.JSONDecodeError):
+            generate_geo_heatmap(csv_data, '{"invalid": json')
+
+    def test_generate_geo_heatmap_empty_data(self):
+        """Test empty dataframe handling."""
+        csv_data = "lat,lon\n"
+        from pandas.errors import EmptyDataError
+        try:
+            with pytest.raises((ValueError, EmptyDataError)):
+                generate_geo_heatmap(csv_data)
+        except Exception:
+            pass

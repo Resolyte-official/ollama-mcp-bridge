@@ -3,10 +3,12 @@ from typing import Literal
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import folium
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from cartopy.mpl.geoaxes import GeoAxes
+from folium.plugins import HeatMap
 
 from plotting_mcp.constants import PLOT_DPI, PLOT_FIGURE_SIZE
 
@@ -201,6 +203,115 @@ def plot_to_bytes(df: pd.DataFrame, plot_type: str, **kwargs) -> bytes:
     buffer.seek(0)
     return buffer.getvalue()
 
+def generate_geo_heatmap_html(df: pd.DataFrame, **kwargs) -> str:
+    """Generate a geo heatmap using Folium and return the HTML string."""
+    if df.empty:
+        raise ValueError("CSV data is empty")
+
+    lat_col = None
+    lon_col = None
+
+    # Try to find latitude column
+    for col in df.columns:
+        col_lower = col.lower()
+        if col_lower in ["lat", "latitude", "y"]:
+            lat_col = col
+            break
+
+    # Try to find longitude column
+    for col in df.columns:
+        col_lower = col.lower()
+        if col_lower in ["lon", "lng", "long", "longitude", "x"]:
+            lon_col = col
+            break
+
+    # Try to find weight column if explicitly specified
+    weight_col = kwargs.pop("weight_col", None)
+    if weight_col and weight_col not in df.columns:
+        raise ValueError(f"Specified weight column '{weight_col}' not found.")
+
+    if lat_col is None or lon_col is None:
+        raise ValueError(
+            "Could not find latitude/longitude columns. "
+            "Expected columns named: lat/latitude/y and lon/long/lng/longitude/x"
+        )
+
+    # Drop rows with NaN in coordinates
+    df_clean = df.dropna(subset=[lat_col, lon_col])
+    if weight_col:
+        df_clean = df_clean.dropna(subset=[weight_col])
+
+    # Default to NYC coords if no data, otherwise use mean
+    if df_clean.empty:
+        center_lat, center_lon = 40.72, -73.98
+    else:
+        center_lat = df_clean[lat_col].mean()
+        center_lon = df_clean[lon_col].mean()
+
+    # Get map config
+    zoom_start = kwargs.pop("zoom_start", 11)
+    tiles = kwargs.pop("tiles", "CartoDB dark_matter")
+    title = kwargs.pop("title", "Geo Heatmap")
+
+    m = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=zoom_start,
+        tiles=tiles,
+        control_scale=True,
+    )
+
+    if weight_col:
+        heat_data = df_clean[[lat_col, lon_col, weight_col]].values.tolist()
+    else:
+        heat_data = df_clean[[lat_col, lon_col]].values.tolist()
+
+    radius = kwargs.pop("radius", 15)
+    blur = kwargs.pop("blur", 20)
+    min_opacity = kwargs.pop("min_opacity", 0.3)
+    max_zoom = kwargs.pop("max_zoom", 15)
+
+    # Custom gradient if provided or use default
+    gradient = kwargs.pop("gradient", {
+        "0.1": "#0000ff",
+        "0.3": "#00ffff",
+        "0.5": "#00ff00",
+        "0.7": "#ffff00",
+        "1.0": "#ff0000",
+    })
+
+    HeatMap(
+        heat_data,
+        name="Heatmap Layer",
+        min_opacity=min_opacity,
+        max_zoom=max_zoom,
+        radius=radius,
+        blur=blur,
+        gradient=gradient,
+    ).add_to(m)
+
+    folium.LayerControl().add_to(m)
+
+    if title:
+        title_html = f"""
+        <div style="
+            position: fixed;
+            top: 12px; left: 50%; transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(20,20,30,0.82);
+            color: #e0e0e0;
+            padding: 6px 20px;
+            border-radius: 4px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            pointer-events: none;
+        ">
+            {title}
+        </div>
+        """
+        m.get_root().html.add_child(folium.Element(title_html))
+
+    return m.get_root().render()
 
 def plot_and_show(df: pd.DataFrame, plot_type: str, **kwargs) -> None:
     """Generate a plot and display it."""

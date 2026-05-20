@@ -184,7 +184,10 @@ class ProxyService:
                     file_info = self.mcp_manager.file_store[file_id]
                     mime_type = file_info["mime_type"]
                     data = file_info["data"]
-                    result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
+                    if mime_type == "text/html":
+                        result["message"]["content"] += f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
+                    else:
+                        result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
                     
         return result
 
@@ -266,7 +269,10 @@ class ProxyService:
                         data = file_info["data"]
                         if "message" not in result:
                             result["message"] = {"role": "assistant", "content": ""}
-                        result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
+                        if mime_type == "text/html":
+                            result["message"]["content"] += f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
+                        else:
+                            result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
                 
                 # Clean up any leftover raw FILE_REF strings from the text
                 if result.get("message", {}).get("content"):
@@ -374,11 +380,16 @@ class ProxyService:
                         mime_type = file_info["mime_type"]
                         data = file_info["data"]
                         
+                        if mime_type == "text/html":
+                            content_str = f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
+                        else:
+                            content_str = f"\n\n![Generated Plot](data:{mime_type};base64,{data})\n\n"
+
                         img_chunk = {
                             "model": current_payload.get("model", "unknown"),
                             "message": {
                                 "role": "assistant",
-                                "content": f"\n\n![Generated Plot](data:{mime_type};base64,{data})\n\n"
+                                "content": content_str
                             },
                             "done": False
                         }

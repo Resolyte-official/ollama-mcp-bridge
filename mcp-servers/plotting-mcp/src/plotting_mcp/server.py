@@ -16,7 +16,7 @@ from starlette.responses import JSONResponse, Response
 
 from plotting_mcp.configure_logging import configure_logging
 from plotting_mcp.constants import MCP_PORT
-from plotting_mcp.plot import plot_to_bytes
+from plotting_mcp.plot import generate_geo_heatmap_html, plot_to_bytes
 from plotting_mcp.utils import sizeof_fmt
 
 logger = structlog.get_logger(__name__)
@@ -85,6 +85,63 @@ def generate_plot(
         )
     except Exception:
         logger.exception("Error generating plot")
+        raise
+
+
+@mcp.tool()
+def generate_geo_heatmap(
+    csv_data: str, json_kwargs: str = "None"
+) -> tuple[TextContent, ImageContent]:
+    """
+    Generate a geographical heatmap from CSV data using Folium.
+
+    Args:
+        csv_data (str): CSV data as a string
+        json_kwargs (str, optional): JSON string with additional parameters for the heatmap.
+            If not specified, the heatmap will be generated with default parameters.
+            Parameters can include:
+                - `weight_col` (str): Column name for weights
+                - `zoom_start` (int): Initial zoom level (default: 11)
+                - `tiles` (str): Map tiles (default: 'CartoDB dark_matter')
+                - `title` (str): Title for the map
+                - `radius` (int): Radius of each "point" of the heatmap (default: 15)
+                - `blur` (int): Amount of blur (default: 20)
+                - `min_opacity` (float): Minimum opacity (default: 0.3)
+                - `max_zoom` (int): Zoom level where points reach maximum intensity (default: 15)
+                - `gradient` (dict): Dictionary mapping floats to colors
+
+    Returns:
+        tuple[TextContent, ImageContent]: A tuple containing a success message and the
+        generated HTML map encapsulated as a base64 encoded document.
+    """
+    if json_kwargs != "None":
+        try:
+            kwargs = json.loads(json_kwargs)
+        except Exception:
+            logger.exception("Invalid JSON for kwargs")
+            raise
+    else:
+        kwargs = {}
+
+    try:
+        df = pd.read_csv(io.StringIO(csv_data))
+        html_str = generate_geo_heatmap_html(df, **kwargs)
+
+        logger.info(
+            "Geo heatmap generated successfully",
+            kwargs=kwargs,
+            size=sizeof_fmt(len(html_str)),
+        )
+        return (
+            TextContent(type="text", text="Geo heatmap generated successfully"),
+            ImageContent(
+                type="image",
+                data=base64.b64encode(html_str.encode("utf-8")).decode(),
+                mimeType="text/html",
+            )
+        )
+    except Exception:
+        logger.exception("Error generating geo heatmap")
         raise
 
 

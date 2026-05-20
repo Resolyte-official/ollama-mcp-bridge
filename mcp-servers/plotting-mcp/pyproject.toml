@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
     "cartopy>=0.24.1",
     "click>=8.2.1",
+    "folium>=0.20.0",
     "matplotlib>=3.10.3",
     "mcp[cli]>=1.12.2",
     "pandas>=2.3.1",
