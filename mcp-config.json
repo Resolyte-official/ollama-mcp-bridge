@@ -21,6 +21,15 @@
     },
     "sandbox": {
       "url": "http://mcp-sandbox:8080/sse"
+    },
+    "airflow": {
+      "command": "uvx",
+      "args": ["astro-airflow-mcp", "--transport", "stdio"],
+      "env": {
+        "AIRFLOW_BASE_URL": "http://localhost:8080",
+        "AIRFLOW_USERNAME": "airflow",
+        "AIRFLOW_PASSWORD": "airflow"
+      }
     }
   }
 }
