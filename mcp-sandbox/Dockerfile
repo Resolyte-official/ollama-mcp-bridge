@@ -22,10 +22,13 @@ RUN pip install --no-cache-dir uv
 # Copy dependency files first for layer caching
 COPY pyproject.toml uv.lock ./
 
+# Copy the package source before syncing so the local module is installable
+COPY server ./server
+
 # Install dependencies
 RUN uv sync --frozen
 
-# Copy project
+# Copy the rest of the project
 COPY . .
 
 EXPOSE 8080

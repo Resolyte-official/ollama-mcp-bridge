@@ -1,4 +1,4 @@
-FROM python:3.14-slim AS builder
+FROM python:3.13-slim AS builder
 
 # Install system dependencies required for Cartopy and other packages
 RUN apt-get update && apt-get install -y \
@@ -25,21 +25,24 @@ RUN chown app:app /app
 # Switch to non-root user
 USER app
 
-# Copy source code and download script
+# Copy project metadata, source code, and download script
+COPY --chown=app:app uv.lock pyproject.toml README.md ./
 COPY --chown=app:app src/ ./src/
 COPY --chown=app:app scripts/download_cartopy_data.py ./
 
+# Ensure the app can write to its cache directories for uv and Rust builds
+RUN mkdir -p /home/app/.cache/uv && chown -R app:app /home/app/.cache
+ENV XDG_CACHE_HOME=/home/app/.cache
+ENV UV_CACHE_DIR=/home/app/.cache/uv
+
 # Sync the project
 RUN --mount=type=cache,target=/home/app/.cache/uv,uid=1000,gid=1000 \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=README.md,target=README.md \
     uv sync --no-dev --locked --no-editable
 
 # Pre-download Cartopy map data to avoid runtime downloads
 RUN /app/.venv/bin/python download_cartopy_data.py
 
-FROM python:3.14-slim AS runner
+FROM python:3.13-slim AS runner
 
 # Install runtime dependencies for Cartopy
 RUN apt-get update && apt-get install -y \

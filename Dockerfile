@@ -2,6 +2,14 @@ FROM python:3.10.15-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    build-essential \
+    g++ \
+    gcc \
+    python3-dev \
+    libproj-dev \
+    proj-data \
+    proj-bin \
+    libgeos-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install uv
