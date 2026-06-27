@@ -41,6 +41,24 @@ COPY public.students (id, roll_number, first_name, last_name, date_of_birth, gen
 5	7A05	Rohan	Gupta	2013-07-19	Male	rohan.gupta.parent@example.com	1	("56 Gandhi Nagar","Gandhi Nagar",Jammu,"Jammu & Kashmir",180005,India,32.7056,74.8569)	2026-02-27 13:27:29.458339
 6	8B11	Vikram	Mahajan	2011-03-26	Male	vikram.mahajan.parent@example.com	2	("22 Sainik Colony","Sainik Colony",Jammu,"Jammu & Kashmir",180006,India,32.6845,74.897)	2026-03-01 17:20:04.997179
 7	8B06	Jasmine	Raina	2012-08-03	Female	jasmine.raina.parent@example.com	2	("88 City Center","City Center",Jammu,"Jammu & Kashmir",180007,India,32.7266,74.857)	2026-03-01 17:20:04.997179
+8	7A06	Ananya	Khajuria	2013-04-18	Female	ananya.khajuria.parent@example.com	1	("18 Trikuta Nagar","Trikuta Nagar",Jammu,"Jammu & Kashmir",180010,India,32.7112,74.8814)	2026-03-05 10:12:11.000000
+9	7A07	Arjun	Koul	2013-09-07	Male	arjun.koul.parent@example.com	1	("42 Talab Tillo","Talab Tillo",Jammu,"Jammu & Kashmir",180011,India,32.7342,74.8421)	2026-03-05 10:12:11.000000
+10	7A08	Sanvi	Dogra	2013-01-25	Female	sanvi.dogra.parent@example.com	1	("77 Janipur","Janipur",Jammu,"Jammu & Kashmir",180012,India,32.7465,74.8342)	2026-03-05 10:12:11.000000
+11	7A09	Aditya	Raina	2013-06-14	Male	aditya.raina.parent@example.com	1	("15 Rehari Colony","Rehari Colony",Jammu,"Jammu & Kashmir",180013,India,32.7318,74.8528)	2026-03-05 10:12:11.000000
+12	7A10	Siya	Gupta	2013-10-03	Female	siya.gupta.parent@example.com	1	("91 Bakshi Nagar","Bakshi Nagar",Jammu,"Jammu & Kashmir",180014,India,32.7269,74.8465)	2026-03-05 10:12:11.000000
+13	7A11	Reyansh	Sharma	2013-12-09	Male	reyansh.sharma.parent@example.com	1	("31 Shastri Nagar","Shastri Nagar",Jammu,"Jammu & Kashmir",180015,India,32.7181,74.8652)	2026-03-05 10:12:11.000000
+14	7A12	Myra	Gupta	2013-03-12	Female	myra.gupta.parent@example.com	1	("63 Narwal","Narwal",Jammu,"Jammu & Kashmir",180016,India,32.6938,74.9021)	2026-03-05 10:12:11.000000
+15	7A13	Vihaan	Singh	2013-08-16	Male	vihaan.singh.parent@example.com	1	("22 Roop Nagar","Roop Nagar",Jammu,"Jammu & Kashmir",180017,India,32.7484,74.8205)	2026-03-05 10:12:11.000000
+16	8A01	Kashvi	Jamwal	2012-05-08	Female	kashvi.jamwal.parent@example.com	2	("14 Gandhi Nagar","Gandhi Nagar",Jammu,"Jammu & Kashmir",180018,India,32.7068,74.8584)	2026-03-05 10:12:11.000000
+17	8A02	Yuvraj	Chib	2012-11-19	Male	yuvraj.chib.parent@example.com	2	("82 Sainik Colony","Sainik Colony",Jammu,"Jammu & Kashmir",180019,India,32.6861,74.8984)	2026-03-05 10:12:11.000000
+18	8A03	Aadhya	Mahajan	2012-02-11	Female	aadhya.mahajan.parent@example.com	2	("55 Channi Himmat","Channi Himmat",Jammu,"Jammu & Kashmir",180020,India,32.6964,74.8886)	2026-03-05 10:12:11.000000
+19	8A04	Lakshya	Kumar	2012-07-24	Male	lakshya.kumar.parent@example.com	2	("11 Trikuta Nagar","Trikuta Nagar",Jammu,"Jammu & Kashmir",180021,India,32.7124,74.8827)	2026-03-05 10:12:11.000000
+20	8A05	Pari	Sood	2012-09-29	Female	pari.sood.parent@example.com	2	("73 Talab Tillo","Talab Tillo",Jammu,"Jammu & Kashmir",180022,India,32.7354,74.8436)	2026-03-05 10:12:11.000000
+21	8A06	Atharv	Bhagat	2012-04-06	Male	atharv.bhagat.parent@example.com	2	("28 Janipur","Janipur",Jammu,"Jammu & Kashmir",180023,India,32.7479,74.8354)	2026-03-05 10:12:11.000000
+22	8A07	Navya	Raina	2012-01-17	Female	navya.raina.parent@example.com	2	("64 Rehari Colony","Rehari Colony",Jammu,"Jammu & Kashmir",180024,India,32.7332,74.8541)	2026-03-05 10:12:11.000000
+23	8A08	Ishaan	Dogra	2012-06-22	Male	ishaan.dogra.parent@example.com	2	("37 Bakshi Nagar","Bakshi Nagar",Jammu,"Jammu & Kashmir",180025,India,32.7281,74.8479)	2026-03-05 10:12:11.000000
+24	8A09	Anaisha	Koul	2012-10-12	Female	anaisha.koul.parent@example.com	2	("49 Shastri Nagar","Shastri Nagar",Jammu,"Jammu & Kashmir",180026,India,32.7194,74.8668)	2026-03-05 10:12:11.000000
+25	8A10	Krish	Khajuria	2012-03-27	Male	krish.khajuria.parent@example.com	2	("95 Narwal","Narwal",Jammu,"Jammu & Kashmir",180027,India,32.6951,74.9035)	2026-03-05 10:12:11.000000
 \.
 
 
@@ -99,6 +117,186 @@ COPY public.attendance (id, student_id, attendance_date, status) FROM stdin;
 48	5	2025-09-08	Present
 49	5	2025-09-09	Absent
 50	5	2025-09-10	Present
+51	8	2025-09-01	Present
+52	8	2025-09-02	Present
+53	8	2025-09-03	Present
+54	8	2025-09-04	Present
+55	8	2025-09-05	Present
+56	8	2025-09-06	Present
+57	8	2025-09-07	Absent
+58	8	2025-09-08	Present
+59	8	2025-09-09	Present
+60	8	2025-09-10	Present
+61	9	2025-09-01	Present
+62	9	2025-09-02	Present
+63	9	2025-09-03	Present
+64	9	2025-09-04	Present
+65	9	2025-09-05	Present
+66	9	2025-09-06	Absent
+67	9	2025-09-07	Present
+68	9	2025-09-08	Present
+69	9	2025-09-09	Present
+70	9	2025-09-10	Present
+71	10	2025-09-01	Present
+72	10	2025-09-02	Present
+73	10	2025-09-03	Present
+74	10	2025-09-04	Present
+75	10	2025-09-05	Absent
+76	10	2025-09-06	Present
+77	10	2025-09-07	Present
+78	10	2025-09-08	Present
+79	10	2025-09-09	Present
+80	10	2025-09-10	Present
+81	11	2025-09-01	Present
+82	11	2025-09-02	Present
+83	11	2025-09-03	Present
+84	11	2025-09-04	Absent
+85	11	2025-09-05	Present
+86	11	2025-09-06	Present
+87	11	2025-09-07	Present
+88	11	2025-09-08	Present
+89	11	2025-09-09	Present
+90	11	2025-09-10	Present
+91	12	2025-09-01	Present
+92	12	2025-09-02	Present
+93	12	2025-09-03	Absent
+94	12	2025-09-04	Present
+95	12	2025-09-05	Present
+96	12	2025-09-06	Present
+97	12	2025-09-07	Present
+98	12	2025-09-08	Present
+99	12	2025-09-09	Present
+100	12	2025-09-10	Absent
+101	13	2025-09-01	Present
+102	13	2025-09-02	Absent
+103	13	2025-09-03	Present
+104	13	2025-09-04	Present
+105	13	2025-09-05	Present
+106	13	2025-09-06	Present
+107	13	2025-09-07	Present
+108	13	2025-09-08	Present
+109	13	2025-09-09	Absent
+110	13	2025-09-10	Present
+111	14	2025-09-01	Absent
+112	14	2025-09-02	Present
+113	14	2025-09-03	Present
+114	14	2025-09-04	Present
+115	14	2025-09-05	Present
+116	14	2025-09-06	Present
+117	14	2025-09-07	Present
+118	14	2025-09-08	Absent
+119	14	2025-09-09	Present
+120	14	2025-09-10	Present
+121	15	2025-09-01	Present
+122	15	2025-09-02	Present
+123	15	2025-09-03	Present
+124	15	2025-09-04	Present
+125	15	2025-09-05	Present
+126	15	2025-09-06	Present
+127	15	2025-09-07	Absent
+128	15	2025-09-08	Present
+129	15	2025-09-09	Present
+130	15	2025-09-10	Present
+131	16	2025-09-01	Present
+132	16	2025-09-02	Present
+133	16	2025-09-03	Present
+134	16	2025-09-04	Present
+135	16	2025-09-05	Present
+136	16	2025-09-06	Absent
+137	16	2025-09-07	Present
+138	16	2025-09-08	Present
+139	16	2025-09-09	Present
+140	16	2025-09-10	Present
+141	17	2025-09-01	Present
+142	17	2025-09-02	Present
+143	17	2025-09-03	Present
+144	17	2025-09-04	Present
+145	17	2025-09-05	Absent
+146	17	2025-09-06	Present
+147	17	2025-09-07	Present
+148	17	2025-09-08	Present
+149	17	2025-09-09	Present
+150	17	2025-09-10	Present
+151	18	2025-09-01	Present
+152	18	2025-09-02	Present
+153	18	2025-09-03	Present
+154	18	2025-09-04	Absent
+155	18	2025-09-05	Present
+156	18	2025-09-06	Present
+157	18	2025-09-07	Present
+158	18	2025-09-08	Present
+159	18	2025-09-09	Present
+160	18	2025-09-10	Present
+161	19	2025-09-01	Present
+162	19	2025-09-02	Present
+163	19	2025-09-03	Absent
+164	19	2025-09-04	Present
+165	19	2025-09-05	Present
+166	19	2025-09-06	Present
+167	19	2025-09-07	Present
+168	19	2025-09-08	Present
+169	19	2025-09-09	Present
+170	19	2025-09-10	Absent
+171	20	2025-09-01	Present
+172	20	2025-09-02	Absent
+173	20	2025-09-03	Present
+174	20	2025-09-04	Present
+175	20	2025-09-05	Present
+176	20	2025-09-06	Present
+177	20	2025-09-07	Present
+178	20	2025-09-08	Present
+179	20	2025-09-09	Absent
+180	20	2025-09-10	Present
+181	21	2025-09-01	Absent
+182	21	2025-09-02	Present
+183	21	2025-09-03	Absent
+184	21	2025-09-04	Present
+185	21	2025-09-05	Present
+186	21	2025-09-06	Present
+187	21	2025-09-07	Present
+188	21	2025-09-08	Absent
+189	21	2025-09-09	Absent
+190	21	2025-09-10	Present
+191	22	2025-09-01	Present
+192	22	2025-09-02	Present
+193	22	2025-09-03	Absent
+194	22	2025-09-04	Present
+195	22	2025-09-05	Present
+196	22	2025-09-06	Present
+197	22	2025-09-07	Absent
+198	22	2025-09-08	Present
+199	22	2025-09-09	Absent
+200	22	2025-09-10	Present
+201	23	2025-09-01	Present
+202	23	2025-09-02	Present
+203	23	2025-09-03	Absent
+204	23	2025-09-04	Present
+205	23	2025-09-05	Present
+206	23	2025-09-06	Absent
+207	23	2025-09-07	Present
+208	23	2025-09-08	Present
+209	23	2025-09-09	Absent
+210	23	2025-09-10	Present
+211	24	2025-09-01	Present
+212	24	2025-09-02	Present
+213	24	2025-09-03	Absent
+214	24	2025-09-04	Present
+215	24	2025-09-05	Absent
+216	24	2025-09-06	Present
+217	24	2025-09-07	Present
+218	24	2025-09-08	Present
+219	24	2025-09-09	Absent
+220	24	2025-09-10	Present
+221	25	2025-09-01	Present
+222	25	2025-09-02	Present
+223	25	2025-09-03	Absent
+224	25	2025-09-04	Absent
+225	25	2025-09-05	Present
+226	25	2025-09-06	Present
+227	25	2025-09-07	Present
+228	25	2025-09-08	Present
+229	25	2025-09-09	Absent
+230	25	2025-09-10	Present
 \.
 
 
@@ -136,6 +334,7 @@ COPY public.employees (id, emp_id, first_name, last_name, email, emp_type, dept_
 
 COPY public.exams (id, exam_name, class_id, start_date, end_date, total_marks) FROM stdin;
 1	Mid Sem	1	2025-09-15	2025-09-20	100
+2	Mid Sem	2	2025-09-15	2025-09-20	100
 \.
 
 
@@ -160,6 +359,10 @@ COPY public.subjects (id, subject_name, class_id) FROM stdin;
 2	Science	1
 3	English	1
 4	History	1
+5	Mathematics	2
+6	Science	2
+7	English	2
+8	History	2
 \.
 
 
@@ -188,6 +391,78 @@ COPY public.results (id, student_id, exam_id, subject_id, marks_obtained) FROM s
 18	5	1	2	40
 19	5	1	3	35
 20	5	1	4	38
+21	8	1	1	84
+22	8	1	2	77
+23	8	1	3	82
+24	8	1	4	79
+25	9	1	1	87
+26	9	1	2	80
+27	9	1	3	85
+28	9	1	4	82
+29	10	1	1	90
+30	10	1	2	83
+31	10	1	3	88
+32	10	1	4	85
+33	11	1	1	93
+34	11	1	2	86
+35	11	1	3	91
+36	11	1	4	88
+37	12	1	1	61
+38	12	1	2	54
+39	12	1	3	59
+40	12	1	4	56
+41	13	1	1	64
+42	13	1	2	57
+43	13	1	3	62
+44	13	1	4	59
+45	14	1	1	67
+46	14	1	2	60
+47	14	1	3	65
+48	14	1	4	62
+49	15	1	1	70
+50	15	1	2	63
+51	15	1	3	68
+52	15	1	4	65
+53	16	2	5	73
+54	16	2	6	66
+55	16	2	7	71
+56	16	2	8	68
+57	17	2	5	76
+58	17	2	6	69
+59	17	2	7	74
+60	17	2	8	71
+61	18	2	5	79
+62	18	2	6	72
+63	18	2	7	77
+64	18	2	8	74
+65	19	2	5	82
+66	19	2	6	75
+67	19	2	7	80
+68	19	2	8	77
+69	20	2	5	85
+70	20	2	6	78
+71	20	2	7	83
+72	20	2	8	80
+73	21	2	5	88
+74	21	2	6	81
+75	21	2	7	86
+76	21	2	8	83
+77	22	2	5	91
+78	22	2	6	84
+79	22	2	7	89
+80	22	2	8	86
+81	23	2	5	94
+82	23	2	6	87
+83	23	2	7	92
+84	23	2	8	89
+85	24	2	5	62
+86	24	2	6	55
+87	24	2	7	60
+88	24	2	8	57
+89	25	2	5	65
+90	25	2	6	58
+91	25	2	7	63
+92	25	2	8	60
 \.
 
 
@@ -204,8 +479,7 @@ COPY public.schema_migrations (version, dirty) FROM stdin;
 -- Name: attendance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
 --
 
-SELECT pg_catalog.setval('public.attendance_id_seq', 50, true);
-
+SELECT pg_catalog.setval('public.attendance_id_seq', 230, true);
 
 --
 -- Name: classes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
@@ -232,28 +506,28 @@ SELECT pg_catalog.setval('public.employees_id_seq', 8, true);
 -- Name: exams_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
 --
 
-SELECT pg_catalog.setval('public.exams_id_seq', 1, true);
+SELECT pg_catalog.setval('public.exams_id_seq', 2, true);
 
 
 --
 -- Name: results_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
 --
 
-SELECT pg_catalog.setval('public.results_id_seq', 20, true);
+SELECT pg_catalog.setval('public.results_id_seq', 92, true);
 
 
 --
 -- Name: students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
 --
 
-SELECT pg_catalog.setval('public.students_id_seq', 7, true);
+SELECT pg_catalog.setval('public.students_id_seq', 25, true);
 
 
 --
 -- Name: subjects_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mcpserver
 --
 
-SELECT pg_catalog.setval('public.subjects_id_seq', 4, true);
+SELECT pg_catalog.setval('public.subjects_id_seq', 8, true);
 
 
 --

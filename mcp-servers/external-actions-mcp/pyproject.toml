@@ -1,0 +1,12 @@
+[project]
+name = "external-actions-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp==1.9.4",
+    "fastapi",
+    "uvicorn",
+    "loguru",
+]

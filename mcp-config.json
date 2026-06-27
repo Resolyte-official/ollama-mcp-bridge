@@ -21,6 +21,9 @@
     },
     "sandbox": {
       "url": "http://mcp-sandbox:8080/sse"
+    },
+    "external-actions": {
+      "url": "http://mcp-external-actions:8090/sse"
     }
   }
 }

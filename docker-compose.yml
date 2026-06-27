@@ -19,6 +19,8 @@ services:
         condition: service_healthy
       mcp-sandbox:
         condition: service_healthy
+      mcp-external-actions:
+        condition: service_healthy
 
   db:
     container_name: postgresdb
@@ -38,6 +40,20 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=example@mail.com 
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+    ports:
+      -  7000:80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
 
   mcp-sandbox:
     container_name: mcp-sandbox
@@ -67,6 +83,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  mcp-external-actions:
+    container_name: mcp-external-actions
+    build:
+      context: mcp-servers/external-actions-mcp
+      dockerfile: Dockerfile
+    expose:
+      - "8090"
+    environment:
+      - CORS_ORIGINS=*
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8090
+      - PLUNK_API_BASE_URL=https://next-api.useplunk.com/v1/send
+      - PLUNK_API_KEY=sk_e224ce332a3dc3d98a59eb363ffc662324bbb9a7775a75431f1ed6b7f9c4d9cc
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
   
 volumes:
   pgdata:
+  pgadmin-data:
