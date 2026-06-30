@@ -27,11 +27,11 @@ jobs:
               
               # Build the multiline message cleanly using a heredoc variable
               read -r -d "" MSG << "EOF"
-          **New Commit Pushed**
+          **New commit pushed to** `${{ github.repository }}`
 
-          **Author:** *${{ github.actor }}*
+          **Author:** ${{ github.actor }}
           **Branch:** `${{ github.ref_name }}`
-          **Message:** ${{ github.event.head_commit.message }}
+          **Message:** [ ${{ github.event.head_commit.message }} ]
 
           **Link:** ${{ github.event.head_commit.url }}
           EOF
