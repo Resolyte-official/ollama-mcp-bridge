@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS get_student_attendance;
 DROP FUNCTION IF EXISTS get_low_attendance_students;
+DROP FUNCTION IF EXISTS insert_scheduled_job;
 DROP TABLE IF EXISTS employees;
 DROP TYPE IF EXISTS emp_type;
 DROP TABLE IF EXISTS departments;
@@ -10,3 +11,4 @@ DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS students;
 DROP TYPE IF EXISTS address;
 DROP TABLE IF EXISTS classes;
+DROP TABLE IF EXISTS scheduled_jobs;

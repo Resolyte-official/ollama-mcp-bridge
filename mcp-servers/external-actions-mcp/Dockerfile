@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir uv
 # Copy project metadata and source
 COPY pyproject.toml uv.lock ./
 COPY main.py ./
+COPY static/ ./static/
 
 # Install dependencies declared in pyproject.toml using uv
 RUN uv sync --no-dev --locked

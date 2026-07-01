@@ -1,6 +1,7 @@
 """Service for handling proxy requests to Ollama"""
 
 import json
+import re
 from typing import Dict, Any, AsyncGenerator, Union
 import httpx
 from fastapi import Request, Response, HTTPException
@@ -79,7 +80,7 @@ class ProxyService:
 
         return {}
 
-    async def _maybe_prepend_system_prompt(self, messages: list) -> tuple[list, Dict[str, Any]]:
+    async def _maybe_prepend_system_prompt(self, messages: list) -> tuple[list, Any]:
         """If a system prompt is configured on the MCP manager, ensure it is the first message.
         Also appends any procedural memory instructions based on the user's latest query as a new system message.
 
@@ -87,8 +88,8 @@ class ProxyService:
         Returns a tuple of (messages, procedural_memory).
         """
         system_prompt = getattr(self.mcp_manager, "system_prompt", None)
-        procedural_memory = {}
-        
+        procedural_memory = ""
+
         # If messages is empty or first message isn't a system role, prepend base system prompt
         if system_prompt:
             if not messages or messages[0].get("role") != "system":
@@ -99,26 +100,32 @@ class ProxyService:
         if last_user_message:
             user_query = last_user_message.get("content", "")
             if user_query:
-                procedural_memory = await self._get_procedural_memory(user_query)
+                procedural_memory_getter = getattr(self, "_get_procedural_memory_instruction", None)
+                if procedural_memory_getter is None:
+                    procedural_memory_getter = self._get_procedural_memory
+                procedural_memory = await procedural_memory_getter(user_query) or ""
                 if procedural_memory:
                     content_parts = []
-                    content_parts.append("Important Note: Only use the following instructions if the intent of the user query matches the following query examples.")
-                    if procedural_memory.get("query_examples"):
-                        qe = procedural_memory['query_examples']
-                        qe_str = json.dumps(qe) if isinstance(qe, (list, dict)) else qe
-                        content_parts.append(f"Query Examples: {qe_str}")
-                    if procedural_memory.get("instruction"):
-                        content_parts.append(f"Instruction: {procedural_memory['instruction']}")
-                    if procedural_memory.get("tool_sequence"):
-                        ts = procedural_memory['tool_sequence']
-                        ts_str = json.dumps(ts) if isinstance(ts, (list, dict)) else ts
-                        content_parts.append(f"Expected Tool Sequence: {ts_str}")
-                    if procedural_memory.get("constraints"):
-                        c = procedural_memory['constraints']
-                        c_str = json.dumps(c) if isinstance(c, (list, dict)) else c
-                        content_parts.append(f"Constraints: {c_str}")
-                    
-                    if len(content_parts) > 1:
+                    if isinstance(procedural_memory, dict):
+                        content_parts.append("Important Note: Only use the following instructions if the intent of the user query matches the following query examples.")
+                        if procedural_memory.get("query_examples"):
+                            qe = procedural_memory['query_examples']
+                            qe_str = json.dumps(qe) if isinstance(qe, (list, dict)) else qe
+                            content_parts.append(f"Query Examples: {qe_str}")
+                        if procedural_memory.get("instruction"):
+                            content_parts.append(f"Instruction: {procedural_memory['instruction']}")
+                        if procedural_memory.get("tool_sequence"):
+                            ts = procedural_memory['tool_sequence']
+                            ts_str = json.dumps(ts) if isinstance(ts, (list, dict)) else ts
+                            content_parts.append(f"Expected Tool Sequence: {ts_str}")
+                        if procedural_memory.get("constraints"):
+                            c = procedural_memory['constraints']
+                            c_str = json.dumps(c) if isinstance(c, (list, dict)) else c
+                            content_parts.append(f"Constraints: {c_str}")
+                    else:
+                        content_parts.append(str(procedural_memory))
+
+                    if len(content_parts) > 1 or isinstance(procedural_memory, str):
                         messages.append({"role": "system", "content": "\n".join(content_parts)})
 
         return messages, procedural_memory
@@ -165,6 +172,41 @@ class ProxyService:
             logger.error(f"Chat proxy failed: {e}")
             raise
 
+    def _build_embedded_content(self, file_info: Dict[str, Any]) -> str:
+        """Render a stored file reference into HTML that the frontend can display."""
+        mime_type = file_info.get("mime_type", "")
+        data = file_info.get("data", "")
+
+        if mime_type == "text/html":
+            return f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
+        if mime_type.startswith("application/pdf"):
+            return f'\n\n<iframe src="data:{mime_type};base64,{data}" type="{mime_type}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
+        return f"\n\n![Generated Plot](data:{mime_type};base64,{data})\n\n"
+
+    async def _append_file_references(self, result: Dict[str, Any], file_ids: list) -> None:
+        """Append embedded content for any file references present in the result."""
+        if not hasattr(self.mcp_manager, "file_store"):
+            return
+
+        if "message" not in result:
+            result["message"] = {"role": "assistant", "content": ""}
+
+        message = result["message"]
+        content = str(message.get("content", ""))
+        embed_parts = []
+
+        for file_id in file_ids:
+            file_info = self.mcp_manager.file_store.get(file_id)
+            if not file_info:
+                continue
+            embed_parts.append(self._build_embedded_content(file_info))
+
+        if embed_parts:
+            combined_content = content + "".join(embed_parts)
+            message["content"] = combined_content
+
+        message["content"] = re.sub(r"\[FILE_REF:[a-zA-Z0-9-]+\]", "", message.get("content", ""))
+
     async def _make_final_llm_call(self, endpoint: str, payload: Dict[str, Any], messages: list) -> Dict[str, Any]:
         """Make a final LLM call without tools to get final answer after tool execution"""
         final_payload = dict(payload)
@@ -174,21 +216,12 @@ class ProxyService:
         resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}{endpoint}", json=final_payload)
         resp.raise_for_status()
         result = resp.json()
-        
-        import re
+
         content = result.get("message", {}).get("content", "")
         if content:
             file_refs = re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", content)
-            for file_id in file_refs:
-                if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
-                    file_info = self.mcp_manager.file_store[file_id]
-                    mime_type = file_info["mime_type"]
-                    data = file_info["data"]
-                    if mime_type == "text/html":
-                        result["message"]["content"] += f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
-                    else:
-                        result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
-                    
+            await self._append_file_references(result, file_refs)
+
         return result
 
     async def _stream_final_llm_call(
@@ -261,23 +294,8 @@ class ProxyService:
                 
                 all_text = " ".join(all_contents)
                 file_refs = list(dict.fromkeys(re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", all_text)))
-                
-                for file_id in file_refs:
-                    if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
-                        file_info = self.mcp_manager.file_store[file_id]
-                        mime_type = file_info["mime_type"]
-                        data = file_info["data"]
-                        if "message" not in result:
-                            result["message"] = {"role": "assistant", "content": ""}
-                        if mime_type == "text/html":
-                            result["message"]["content"] += f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
-                        else:
-                            result["message"]["content"] += f"\n\n![Generated Plot](data:{mime_type};base64,{data})"
-                
-                # Clean up any leftover raw FILE_REF strings from the text
-                if result.get("message", {}).get("content"):
-                    result["message"]["content"] = re.sub(r"\[FILE_REF:[a-zA-Z0-9-]+\]", "", result["message"]["content"])
-                    
+                await self._append_file_references(result, file_refs)
+
                 return result
 
             # Add assistant's response with tool calls
@@ -377,13 +395,7 @@ class ProxyService:
                 for file_id in file_refs:
                     if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
                         file_info = self.mcp_manager.file_store[file_id]
-                        mime_type = file_info["mime_type"]
-                        data = file_info["data"]
-                        
-                        if mime_type == "text/html":
-                            content_str = f'\n\n<iframe src="data:{mime_type};base64,{data}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>\n\n'
-                        else:
-                            content_str = f"\n\n![Generated Plot](data:{mime_type};base64,{data})\n\n"
+                        content_str = self._build_embedded_content(file_info)
 
                         img_chunk = {
                             "model": current_payload.get("model", "unknown"),
@@ -393,12 +405,12 @@ class ProxyService:
                             },
                             "done": False
                         }
-                        logger.info(f"YIELDING IMAGE CHUNK FOR {file_id}, size: {len(data)}")
+                        logger.info(f"YIELDING FILE CHUNK FOR {file_id}, size: {len(file_info.get('data', ''))}")
                         yield (json.dumps(img_chunk) + "\n").encode()
-                
+
                 # Strip FILE_REFs from the message so the LLM doesn't hallucinate paths
                 if file_refs:
-                    strict_msg = "[Image successfully generated and displayed directly to the user. Do NOT output any markdown image tags or file paths in your response. Just briefly summarize what the plot represents.]"
+                    strict_msg = "[File successfully generated and displayed directly to the user. Do NOT output any markdown image tags or file paths in your response. Just briefly summarize what the content represents.]"
                     messages[-len(tool_calls) + i]["content"] = re.sub(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", strict_msg, messages[-len(tool_calls) + i]["content"])
             # -------------------------------------------------------------------------
 

@@ -10,7 +10,7 @@ services:
       - OLLAMA_URL=http://host.containers.internal:11434
       - CORS_ORIGINS=*
     volumes:
-      - ./mcp-config.json:/root/mcp-config.json
+      - ./mcp-config.json:/mcp-config.json
     restart: unless-stopped
     extra_hosts:
       - "host.containers.internal:host-gateway"
@@ -20,6 +20,8 @@ services:
       mcp-sandbox:
         condition: service_healthy
       mcp-external-actions:
+        condition: service_healthy
+      mcp-pdf-report:
         condition: service_healthy
 
   db:
@@ -48,7 +50,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=example@mail.com 
       - PGADMIN_DEFAULT_PASSWORD=postgres
     ports:
-      -  7000:80
+      -  5435:80
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
@@ -105,6 +107,25 @@ services:
       retries: 5
       start_period: 15s
   
+  mcp-pdf-report:
+    container_name: mcp-pdf-report
+    build:
+      context: mcp-servers/pdf-report-mcp
+      dockerfile: Dockerfile
+    expose:
+      - "8091"
+    environment:
+      - CORS_ORIGINS=*
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8091
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8091/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
 volumes:
   pgdata:
   pgadmin-data:

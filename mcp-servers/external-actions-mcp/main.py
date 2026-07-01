@@ -5,11 +5,16 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+import time
+import asyncio
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from loguru import logger
 from mcp.server.fastmcp import FastMCP
 import uvicorn
+import base64
+import aiofiles
+from mcp.types import ImageContent, TextContent
 
 # Configure logger
 logger.remove()
@@ -39,6 +44,136 @@ HOST = os.getenv("MCP_HOST", "0.0.0.0")
 
 mcp = FastMCP("external-actions", host=HOST, port=PORT)
 
+
+@mcp.tool()
+async def demo_action(num: int, **kwargs) -> any:
+    if not isinstance(num, int) or num <= 0:
+        raise ValueError("The 'num' parameter must be a positive integer.")
+
+    # Normalize nested JSON kwargs commonly produced by the LLM (e.g. {"kwargs": "{\"parent_email\": \"x@x.com\"}"})
+    if "kwargs" in kwargs:
+        nested = kwargs.get("kwargs")
+        try:
+            if isinstance(nested, str):
+                parsed = json.loads(nested)
+            elif isinstance(nested, dict):
+                parsed = nested
+            else:
+                parsed = None
+
+            if isinstance(parsed, dict):
+                # merge parsed into kwargs without overwriting explicit top-level keys
+                for k, v in parsed.items():
+                    if k not in kwargs:
+                        kwargs[k] = v
+                # remove the nested wrapper to avoid confusion later
+                kwargs.pop("kwargs", None)
+        except Exception:
+            logger.warning("demo_action: failed to parse nested JSON 'kwargs', continuing with original kwargs")
+
+    match num:
+        case 1: # generate time-table as pdf for all sections of grade 10th
+            # time.sleep(2)
+            pdf_path = "static/grade10_timetable.pdf"
+            try:
+                async with aiofiles.open(pdf_path, mode='rb') as f:
+                    pdf_bytes = await f.read()
+                    
+                return (
+                    TextContent(type="text", text="PDF report generated successfully."),
+                    ImageContent(
+                        type="image",
+                        data=base64.b64encode(pdf_bytes).decode("ascii"),
+                        mimeType="application/pdf",
+                    ),
+                )
+            except FileNotFoundError:
+                return TextContent(type="text", text=f"Error: The file at {pdf_path} was not found.")
+            except Exception as e:
+                return TextContent(type="text", text=f"An error occurred: {str(e)}")
+
+        case 2: # generate exam reports for all students and email them to their parents
+            # time.sleep(3)
+            pdf_bytes = None
+            pdf_path = "static/exam_report.pdf"
+            try:
+                async with aiofiles.open(pdf_path, mode='rb') as f:
+                    pdf_bytes = await f.read()
+
+                to = kwargs.get("parent_email", "example@mail.com")
+                resp = await send_email(
+                    to=to,
+                    subject="Exam Report",
+                    body="Please find attached the exam report for your ward.",
+                    attachments=[
+                        {
+                            "filename": "exam-report.pdf",
+                            "content": base64.b64encode(pdf_bytes).decode("ascii"),
+                            "contentType": "application/pdf",
+                        }
+                    ],
+                )
+
+                if isinstance(resp, dict) and resp.get("status_code"):
+                    body = resp.get("body")
+                    if isinstance(body, dict) and body.get("success") is True:
+                        return TextContent(
+                            type="text",
+                            text=("mailed reports to all parents successfully."),
+                        )
+                    else:
+                        print(f"Email sending failed: {body}")
+                        return TextContent(type="text", text=f"email failed")
+                else:
+                    print(f"Unexpected response from send_email: {resp}")
+                    return TextContent(type="text", text=f"email failed")
+
+            except FileNotFoundError:
+                return TextContent(type="text", text=f"Error: The file at {pdf_path} was not found.")
+            except Exception as e:
+                return TextContent(type="text", text=f"An error occurred: {str(e)}")
+
+        case 3: # generate geo heatmap for student distribution
+            map_path = "static/student_distribution_map.html"
+            try:
+                async with aiofiles.open(map_path, mode='rb') as f:
+                    html_bytes = await f.read()
+                return (
+                    TextContent(type="text", text="Geo heatmap generated successfully"),
+                    ImageContent(
+                        type="image",
+                        data=base64.b64encode(html_bytes).decode(),
+                        mimeType="text/html",
+                    )
+                )
+            except FileNotFoundError:
+                return TextContent(type="text", text=f"Error: The file at {map_path} was not found.")
+            except Exception as e:
+                return TextContent(type="text", text=f"An error occurred: {str(e)}")
+
+        case 4: # generate class wise attendance report pdf
+            # time.sleep(2)
+            pdf_path = "static/attendance_report.pdf"
+            try:
+                async with aiofiles.open(pdf_path, mode='rb') as f:
+                    pdf_bytes = await f.read()
+                    
+                return (
+                    TextContent(type="text", text="PDF report generated successfully."),
+                    ImageContent(
+                        type="image",
+                        data=base64.b64encode(pdf_bytes).decode("ascii"),
+                        mimeType="application/pdf",
+                    ),
+                )
+            except FileNotFoundError:
+                return TextContent(type="text", text=f"Error: The file at {pdf_path} was not found.")
+            except Exception as e:
+                return TextContent(type="text", text=f"An error occurred: {str(e)}")
+                
+        case _:
+            # The wildcard '_' acts as the 'default' case
+            return {"message": "no action exists for this number."}
 
 @mcp.tool()
 async def send_email(
@@ -187,23 +322,36 @@ async def send_email(
         },
         method="POST",
     )
+    def _do_request_sync(req: urllib.request.Request) -> tuple[int, str]:
+        try:
+            with urllib.request.urlopen(req) as response:
+                status = response.getcode()
+                body = response.read().decode("utf-8")
+                return status, body
+
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"Plunk API request failed ({exc.code}): {error_body or exc.reason}"
+            ) from exc
+
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Failed to connect to Plunk API: {exc.reason}") from exc
+
+    status_code, response_body = await asyncio.to_thread(_do_request_sync, request)
 
     try:
-        with urllib.request.urlopen(request) as response:
-            response_body = response.read().decode("utf-8")
-            return json.loads(response_body) if response_body else {}
+        parsed = json.loads(response_body) if response_body else None
+    except Exception:
+        parsed = response_body
 
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(
-            f"Plunk API request failed ({exc.code}): "
-            f"{error_body or exc.reason}"
-        ) from exc
+    logger.info("Plunk send_email response: status={status}", status=status_code)
 
-    except urllib.error.URLError as exc:
-        raise RuntimeError(
-            f"Failed to connect to Plunk API: {exc.reason}"
-        ) from exc
+    # Treat non-2xx as errors
+    if not (200 <= status_code < 300):
+        raise RuntimeError(f"Plunk API returned status {status_code}: {response_body}")
+
+    return {"status_code": status_code, "body": parsed}
 
 
 app.mount("/", mcp.sse_app())

@@ -24,6 +24,9 @@
     },
     "external-actions": {
       "url": "http://mcp-external-actions:8090/sse"
+    },
+    "pdf-report": {
+      "url": "http://mcp-pdf-report:8091/sse"
     }
   }
 }

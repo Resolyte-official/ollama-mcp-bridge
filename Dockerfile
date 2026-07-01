@@ -22,4 +22,4 @@ RUN uv sync
 
 EXPOSE 8000
 
-CMD ["uv", "run", "ollama-mcp-bridge"]
+CMD ["uv", "run", "ollama-mcp-bridge", "--config", "/mcp-config.json"]

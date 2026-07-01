@@ -241,6 +241,33 @@ async def test_system_prompt_prepended():
     assert proc3 == ""
 
 
+@pytest.mark.asyncio
+async def test_pdf_file_refs_are_rendered_in_message_content():
+    """PDF file references should be rendered as embedded content in assistant responses."""
+    try:
+        from ollama_mcp_bridge.mcp_manager import MCPManager
+        from ollama_mcp_bridge.proxy_service import ProxyService
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+        from ollama_mcp_bridge.mcp_manager import MCPManager
+        from ollama_mcp_bridge.proxy_service import ProxyService
+
+    manager = MCPManager()
+    service = ProxyService(manager)
+    manager.file_store["pdf-123"] = {
+        "mime_type": "application/pdf",
+        "data": "JVBERi0xLjQK",
+    }
+
+    result = {"message": {"content": "Here is the report."}}
+    await service._append_file_references(result, ["pdf-123"])
+
+    content = result["message"]["content"]
+    assert "application/pdf" in content
+    assert "data:application/pdf;base64" in content
+    assert "<iframe" in content
+
+
 def test_is_port_in_use():
     """Test the is_port_in_use utility."""
     import socket

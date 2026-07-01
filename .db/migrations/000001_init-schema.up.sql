@@ -84,6 +84,14 @@ CREATE TABLE IF NOT EXISTS employees (
     dept_id INT REFERENCES departments(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS scheduled_jobs (
+    id SERIAL PRIMARY KEY,
+    job_name VARCHAR(100) NOT NULL,
+    schedule_time TIMESTAMP NOT NULL,
+    status VARCHAR(20) CHECK (status IN ('Scheduled', 'Completed', 'Failed')) DEFAULT 'Scheduled',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 -- Functions
 
@@ -137,3 +145,14 @@ AS $$
         COUNT(*) FILTER (WHERE a.status = 'Present') * 100.0 / COUNT(*)
     )::FLOAT < threshold;
 $$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION insert_scheduled_job(
+    p_job_name VARCHAR,
+    p_schedule_time TEXT
+) 
+RETURNS void AS $$
+BEGIN
+    INSERT INTO scheduled_jobs (job_name, schedule_time)
+    VALUES (p_job_name, TO_TIMESTAMP(p_schedule_time, 'YYYY-MM-DD HH24:MI:SS'));
+END;
+$$ LANGUAGE plpgsql;
