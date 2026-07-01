@@ -103,7 +103,7 @@ class ProxyService:
                 # Top K = 1, threshold = 0.50 based on fetch_embeddings.py
                 row = await conn.fetchrow(
                     """
-                    SELECT instruction, tool_sequence, constraints, query_examples, 1 - (embedding <=> $1::vector) AS similarity
+                    SELECT intent, instruction, tool_sequence, constraints, query_examples, 1 - (embedding <=> $1::vector) AS similarity
                     FROM procedural_memory
                     WHERE embedding IS NOT NULL
                     ORDER BY embedding <=> $1::vector
@@ -114,6 +114,7 @@ class ProxyService:
 
                 if row and row["similarity"] >= 0.50:
                     return {
+                        "intent": row["intent"],
                         "instruction": row["instruction"],
                         "tool_sequence": row["tool_sequence"],
                         "constraints": row["constraints"],

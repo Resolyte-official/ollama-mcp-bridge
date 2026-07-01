@@ -604,26 +604,14 @@
                         let updated = false;
 
                         if (data._procedural_memory && !assistantMsg._has_added_procedural) {
-                            let content = '';
-                            if (data._procedural_memory.query_examples) {
-                                let val = data._procedural_memory.query_examples;
-                                content += `Query Examples: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
+                            const intent = data._procedural_memory.intent;
+                            if (intent) {
+                                const procMsg = { role: 'system', content: `Intent: ${intent}`, _is_procedural: true };
+                                // Insert before the last element (which is the assistantMsg placeholder)
+                                messages.splice(messages.length - 1, 0, procMsg);
+                                assistantMsg._has_added_procedural = true;
+                                updated = true;
                             }
-                            if (data._procedural_memory.instruction) content += `Instruction: ${data._procedural_memory.instruction}\n`;
-                            if (data._procedural_memory.tool_sequence) {
-                                let val = data._procedural_memory.tool_sequence;
-                                content += `Tool Sequence: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
-                            }
-                            if (data._procedural_memory.constraints) {
-                                let val = data._procedural_memory.constraints;
-                                content += `Constraints: ${typeof val === 'object' ? JSON.stringify(val) : val}\n`;
-                            }
-                            
-                            const procMsg = { role: 'system', content: content.trim(), _is_procedural: true };
-                            // Insert before the last element (which is the assistantMsg placeholder)
-                            messages.splice(messages.length - 1, 0, procMsg);
-                            assistantMsg._has_added_procedural = true;
-                            updated = true;
                         }
 
                         if (data.message && data.message.content) {
