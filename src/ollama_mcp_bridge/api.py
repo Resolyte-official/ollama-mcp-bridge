@@ -59,6 +59,18 @@ async def chat(body: Dict[str, Any] = Body(..., example=CHAT_EXAMPLE)):
         raise HTTPException(status_code=500, detail=f"/api/chat failed: {str(e)}") from e
 
 
+@app.post("/api/chat/stop", summary="Stop an in-progress chat generation", description="Signal the current chat request to stop processing.")
+async def stop_chat(body: Dict[str, Any] = Body(default_factory=dict)):
+    """Stop an in-progress chat request by request id."""
+    proxy_service = get_proxy_service()
+    if not proxy_service:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Services not initialized")
+
+    request_id = body.get("request_id")
+    stopped = await proxy_service.stop_chat_request(request_id)
+    return {"stopped": stopped, "request_id": request_id}
+
+
 @app.get("/version", summary="Version information", description="Get version information and check for updates.")
 async def version():
     """Version information endpoint."""

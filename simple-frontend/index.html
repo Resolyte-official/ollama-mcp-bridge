@@ -265,12 +265,21 @@
     const thinkingModeToggle = document.getElementById('thinking-mode-toggle');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
+    const stopBtn = document.createElement('button');
+    stopBtn.id = 'stop-btn';
+    stopBtn.className = 'hidden p-2 rounded-lg bg-error text-white hover:bg-error/90 transition-colors flex items-center justify-center shadow-md';
+    stopBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">stop_circle</span>';
+    sendBtn.parentNode.insertBefore(stopBtn, sendBtn.nextSibling);
     const chatHistoryInner = document.getElementById('chat-history-inner');
     const chatHistory = document.getElementById('chat-history');
     const newChatBtn = document.getElementById('new-chat-btn');
 
     let messages = [];
     let systemPrompts = [];
+    let activeRequestId = null;
+    let isGenerating = false;
+    let activeReader = null;
+    let activeController = null;
 
     // Load State
     try {
@@ -295,6 +304,16 @@
     function saveState() {
         localStorage.setItem('abcdery_messages', JSON.stringify(messages));
         localStorage.setItem('abcdery_prompts', JSON.stringify(systemPrompts));
+    }
+
+    function updateInputState() {
+        const disabled = isGenerating;
+        chatInput.disabled = disabled;
+        sendBtn.disabled = disabled;
+        sendBtn.classList.toggle('opacity-50', disabled);
+        sendBtn.classList.toggle('cursor-not-allowed', disabled);
+        stopBtn.classList.toggle('hidden', !disabled);
+        stopBtn.classList.toggle('flex', disabled);
     }
 
     ollamaUrlInput.addEventListener('input', () => localStorage.setItem('abcdery_url', ollamaUrlInput.value));
@@ -490,6 +509,8 @@
     }
 
     async function sendMessage() {
+        if (isGenerating) return;
+
         const content = chatInput.value.trim();
         const model = modelSelector.value;
         const url = ollamaUrlInput.value.trim();
@@ -499,6 +520,10 @@
             alert('Please select a model and type a message.');
             return;
         }
+
+        activeRequestId = `req-${Date.now()}`;
+        isGenerating = true;
+        updateInputState();
 
         // Add user message
         messages.push({ role: 'user', content });
@@ -524,8 +549,11 @@
         const startTime = Date.now();
 
         try {
+            const controller = new AbortController();
+            activeController = controller;
             const response = await fetch(`${url}/api/chat`, {
                 method: 'POST',
+                signal: controller.signal,
                 headers: { 
                     'accept': 'application/json',
                     'Content-Type': 'application/json' 
@@ -535,6 +563,7 @@
                     messages: apiMessages,
                     stream: true,
                     think: think,
+                    request_id: activeRequestId,
                     options: {
                         temperature: 0.0,
                         top_p: 0.9
@@ -545,6 +574,7 @@
             if (!response.ok) throw new Error('API Error');
 
             const reader = response.body.getReader();
+            activeReader = reader;
             const decoder = new TextDecoder();
             let buffer = '';
 
@@ -622,18 +652,55 @@
             
             saveState(); // Save final message state when stream is done
         } catch (error) {
-            console.error(error);
-            assistantMsg.content += '\n\n*Error connecting to API. Please check URL and model.*';
+            if (error.name === 'AbortError') {
+                assistantMsg.content += '\n\n*Generation stopped by user.*';
+            } else {
+                console.error(error);
+                assistantMsg.content += '\n\n*Error connecting to API. Please check URL and model.*';
+            }
             saveState();
             renderMessages();
+        } finally {
+            activeReader = null;
+            activeController = null;
+            activeRequestId = null;
+            isGenerating = false;
+            updateInputState();
+        }
+    }
+
+    async function stopGeneration() {
+        if (!isGenerating || !activeRequestId) return;
+        try {
+            await fetch(`${ollamaUrlInput.value.trim()}/api/chat/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request_id: activeRequestId })
+            });
+        } catch (error) {
+            console.error('Failed to stop generation', error);
+        }
+
+        if (activeController) {
+            activeController.abort();
+        }
+        if (activeReader) {
+            try {
+                await activeReader.cancel();
+            } catch (error) {
+                console.error('Failed to cancel reader', error);
+            }
         }
     }
 
     sendBtn.addEventListener('click', sendMessage);
+    stopBtn.addEventListener('click', stopGeneration);
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            if (!isGenerating) {
+                sendMessage();
+            }
         }
     });
 
@@ -644,6 +711,8 @@
             this.style.height = 'auto';
         }
     });
+
+    updateInputState();
 
 </script>
 </body></html>

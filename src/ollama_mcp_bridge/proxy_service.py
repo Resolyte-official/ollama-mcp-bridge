@@ -1,5 +1,6 @@
 """Service for handling proxy requests to Ollama"""
 
+import asyncio
 import json
 import re
 from typing import Dict, Any, AsyncGenerator, Union
@@ -19,9 +20,53 @@ class ProxyService:
         """Initialize the proxy service with an MCP manager and optional db pool."""
         self.mcp_manager = mcp_manager
         self.db_pool = db_pool
+        self.active_chat_requests: Dict[str, asyncio.Event] = {}
         is_set, timeout_seconds = get_ollama_proxy_timeout_config()
         # Preserve existing behavior when unset (no timeout for /api/chat). If set, honor it.
         self.http_client = httpx.AsyncClient(timeout=timeout_seconds) if is_set else httpx.AsyncClient(timeout=None)
+
+    async def register_chat_request(self, request_id: str | None) -> asyncio.Event | None:
+        """Register an active chat request and return its stop event."""
+        if not request_id:
+            return None
+
+        event = asyncio.Event()
+        self.active_chat_requests[request_id] = event
+        return event
+
+    async def clear_chat_request(self, request_id: str | None) -> None:
+        """Remove a chat request from the active registry."""
+        if request_id:
+            self.active_chat_requests.pop(request_id, None)
+
+    async def stop_chat_request(self, request_id: str | None) -> bool:
+        """Signal that an active chat request should stop processing."""
+        if not request_id:
+            return False
+
+        event = self.active_chat_requests.get(request_id)
+        if event is None:
+            return False
+
+        event.set()
+        return True
+
+    def _is_stop_requested(self, request_id: str | None) -> bool:
+        """Return whether the active request has been stopped."""
+        if not request_id:
+            return False
+
+        event = self.active_chat_requests.get(request_id)
+        return event is not None and event.is_set()
+
+    def _build_stop_chunk(self, payload: Dict[str, Any]) -> bytes:
+        """Create a small JSON payload to indicate that the response was stopped by the user."""
+        return (json.dumps({
+            "model": payload.get("model", "unknown"),
+            "message": {"role": "assistant", "content": "\n\n*Generation stopped by user.*"},
+            "done": True,
+            "stopped": True,
+        }) + "\n").encode()
 
     async def _get_procedural_memory(self, user_query: str) -> Dict[str, Any]:
         """Fetch similar procedural memory for a user query."""
@@ -257,175 +302,202 @@ class ProxyService:
 
     async def _proxy_with_tools_non_streaming(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Handle non-streaming chat requests with tools"""
-        payload = dict(payload)
-        payload["stream"] = False  # Explicitly disable streaming to get single JSON response
-        payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
-        messages = payload.get("messages") or []
-        messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
+        request_id = payload.get("request_id")
+        await self.register_chat_request(request_id)
+        try:
+            payload = dict(payload)
+            payload["stream"] = False  # Explicitly disable streaming to get single JSON response
+            payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
+            messages = payload.get("messages") or []
+            messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
 
-        # Get max tool rounds from app state (None means unlimited)
-        max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
-        current_round = 0
+            # Get max tool rounds from app state (None means unlimited)
+            max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
+            current_round = 0
 
-        # Loop to handle potentially multiple rounds of tool calls
-        while True:
-            # Call Ollama
-            current_payload = dict(payload)
-            current_payload["messages"] = messages
-            resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}{endpoint}", json=current_payload)
-            resp.raise_for_status()
-            result = resp.json()
+            # Loop to handle potentially multiple rounds of tool calls
+            while True:
+                if self._is_stop_requested(request_id):
+                    return {"message": {"role": "assistant", "content": "\n\n*Generation stopped by user.*"}, "done": True, "stopped": True}
 
-            # Add procedural memory to the final result
-            if procedural_memory:
-                result["_procedural_memory"] = procedural_memory
+                # Call Ollama
+                current_payload = dict(payload)
+                current_payload["messages"] = messages
+                resp = await self.http_client.post(f"{self.mcp_manager.ollama_url}{endpoint}", json=current_payload)
+                resp.raise_for_status()
+                result = resp.json()
 
-            # Check for tool calls
-            tool_calls = self._extract_tool_calls(result)
-            if not tool_calls:
-                # No more tool calls, check for files to append
-                import re
-                
-                # We need to collect file refs from ALL tool messages in this request,
-                # as well as the final assistant content, to ensure we don't miss any if the LLM drops them.
-                all_contents = [str(m.get("content", "")) for m in messages if m.get("role") == "tool"]
-                content = result.get("message", {}).get("content", "")
-                all_contents.append(content)
-                
-                all_text = " ".join(all_contents)
-                file_refs = list(dict.fromkeys(re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", all_text)))
-                await self._append_file_references(result, file_refs)
-
-                return result
-
-            # Add assistant's response with tool calls
-            response_content = result.get("message", {}).get("content", "")
-            messages.append({"role": "assistant", "content": response_content, "tool_calls": tool_calls})
-
-            # Execute tool calls and add results to messages
-            messages = await self._handle_tool_calls(messages, tool_calls)
-
-            # Check if we've reached the maximum number of rounds
-            current_round += 1
-            if max_rounds is not None and current_round >= max_rounds:
-                logger.warning(
-                    f"Reached maximum tool execution rounds ({max_rounds}), making final LLM call with tool results"
-                )
-                final_result = await self._make_final_llm_call(endpoint, payload, messages)
+                # Add procedural memory to the final result
                 if procedural_memory:
-                    final_result["_procedural_memory"] = procedural_memory
-                return final_result
+                    result["_procedural_memory"] = procedural_memory
 
-            # Continue loop to get next response
+                # Check for tool calls
+                tool_calls = self._extract_tool_calls(result)
+                if not tool_calls:
+                    # No more tool calls, check for files to append
+                    import re
+                    
+                    # We need to collect file refs from ALL tool messages in this request,
+                    # as well as the final assistant content, to ensure we don't miss any if the LLM drops them.
+                    all_contents = [str(m.get("content", "")) for m in messages if m.get("role") == "tool"]
+                    content = result.get("message", {}).get("content", "")
+                    all_contents.append(content)
+                    
+                    all_text = " ".join(all_contents)
+                    file_refs = list(dict.fromkeys(re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", all_text)))
+                    await self._append_file_references(result, file_refs)
+
+                    return result
+
+                # Add assistant's response with tool calls
+                response_content = result.get("message", {}).get("content", "")
+                messages.append({"role": "assistant", "content": response_content, "tool_calls": tool_calls})
+
+                # Execute tool calls and add results to messages
+                messages = await self._handle_tool_calls(messages, tool_calls)
+
+                # Check if we've reached the maximum number of rounds
+                current_round += 1
+                if max_rounds is not None and current_round >= max_rounds:
+                    logger.warning(
+                        f"Reached maximum tool execution rounds ({max_rounds}), making final LLM call with tool results"
+                    )
+                    final_result = await self._make_final_llm_call(endpoint, payload, messages)
+                    if procedural_memory:
+                        final_result["_procedural_memory"] = procedural_memory
+                    return final_result
+
+                # Continue loop to get next response
+        finally:
+            await self.clear_chat_request(request_id)
 
     async def _proxy_with_tools_streaming(self, endpoint: str, payload: Dict[str, Any]) -> AsyncGenerator[bytes, None]:
         """Handle streaming chat requests with tools"""
+        request_id = payload.get("request_id")
+        await self.register_chat_request(request_id)
 
-        payload = dict(payload)
-        payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
-        messages = list(payload.get("messages") or [])
-        messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
+        try:
+            payload = dict(payload)
+            payload["tools"] = self.mcp_manager.all_tools if self.mcp_manager.all_tools else None
+            messages = list(payload.get("messages") or [])
+            messages, procedural_memory = await self._maybe_prepend_system_prompt(messages)
 
-        async def stream_ollama(payload_to_send):
-            async with httpx.AsyncClient(timeout=None) as client:
-                async with client.stream(
-                    "POST", f"{self.mcp_manager.ollama_url}{endpoint}", json=payload_to_send
-                ) as resp:
-                    async for chunk in resp.aiter_bytes():
-                        yield chunk
+            async def stream_ollama(payload_to_send):
+                async with httpx.AsyncClient(timeout=None) as client:
+                    async with client.stream(
+                        "POST", f"{self.mcp_manager.ollama_url}{endpoint}", json=payload_to_send
+                    ) as resp:
+                        async for chunk in resp.aiter_bytes():
+                            if self._is_stop_requested(request_id):
+                                break
+                            yield chunk
 
-        # Get max tool rounds from app state (None means unlimited)
-        max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
-        current_round = 0
-        first_chunk_sent = False
+            # Get max tool rounds from app state (None means unlimited)
+            max_rounds = getattr(self.mcp_manager, "max_tool_rounds", None)
+            current_round = 0
+            first_chunk_sent = False
 
-        # Loop to handle potentially multiple rounds of tool calls
-        while True:
-            current_payload = dict(payload)
-            current_payload["messages"] = messages
-
-            tool_calls = []
-            response_text = ""
-            done_chunk = None
-
-            ndjson_iter = iter_ndjson_chunks(stream_ollama(current_payload))
-            async for json_obj in ndjson_iter:
-                msg_content = json_obj.get("message", {}).get("content", "")
-                if msg_content:
-                    response_text += msg_content
-
-                if not first_chunk_sent and procedural_memory:
-                    json_obj["_procedural_memory"] = procedural_memory
-                    first_chunk_sent = True
-
-                extracted_calls = self._extract_tool_calls(json_obj)
-                if extracted_calls:
-                    tool_calls = extracted_calls
-
-                if json_obj.get("done"):
-                    done_chunk = json_obj
+            # Loop to handle potentially multiple rounds of tool calls
+            while True:
+                if self._is_stop_requested(request_id):
+                    yield self._build_stop_chunk(payload)
                     break
-                else:
-                    if msg_content and "[FILE_REF:" in msg_content:
-                        pass # Skip chunks with file ref parts
-                    elif msg_content and "]" in msg_content and response_text.count("[FILE_REF:") > response_text.count("]"):
-                        pass # Skip chunks that are completing the file ref
+
+                current_payload = dict(payload)
+                current_payload["messages"] = messages
+
+                tool_calls = []
+                response_text = ""
+                done_chunk = None
+
+                ndjson_iter = iter_ndjson_chunks(stream_ollama(current_payload))
+                async for json_obj in ndjson_iter:
+                    if self._is_stop_requested(request_id):
+                        break
+
+                    msg_content = json_obj.get("message", {}).get("content", "")
+                    if msg_content:
+                        response_text += msg_content
+
+                    if not first_chunk_sent and procedural_memory:
+                        json_obj["_procedural_memory"] = procedural_memory
+                        first_chunk_sent = True
+
+                    extracted_calls = self._extract_tool_calls(json_obj)
+                    if extracted_calls:
+                        tool_calls = extracted_calls
+
+                    if json_obj.get("done"):
+                        done_chunk = json_obj
+                        break
                     else:
-                        yield (json.dumps(json_obj) + "\n").encode()
+                        if msg_content and "[FILE_REF:" in msg_content:
+                            pass # Skip chunks with file ref parts
+                        elif msg_content and "]" in msg_content and response_text.count("[FILE_REF:") > response_text.count("]"):
+                            pass # Skip chunks that are completing the file ref
+                        else:
+                            yield (json.dumps(json_obj) + "\n").encode()
 
-            if done_chunk:
-                # Do NOT stream the done chunk here, we must only yield it when NO tool calls are found
-                pass
+                if self._is_stop_requested(request_id):
+                    yield self._build_stop_chunk(payload)
+                    break
 
-            if not tool_calls:
                 if done_chunk:
-                    yield (json.dumps(done_chunk) + "\n").encode()
-                # No tool calls required, streaming complete
-                break
+                    # Do NOT stream the done chunk here, we must only yield it when NO tool calls are found
+                    pass
 
-            # Tool calls detected; execute them
-            messages.append({"role": "assistant", "content": response_text, "tool_calls": tool_calls})
-            messages = await self._handle_tool_calls(messages, tool_calls)
+                if not tool_calls:
+                    if done_chunk:
+                        yield (json.dumps(done_chunk) + "\n").encode()
+                    # No tool calls required, streaming complete
+                    break
 
-            # --- Instantly stream any files generated by the tools to the frontend ---
-            import re
-            tool_contents = [str(m.get("content", "")) for m in messages[-len(tool_calls):]]
-            for i, content in enumerate(tool_contents):
-                file_refs = re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", content)
-                for file_id in file_refs:
-                    if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
-                        file_info = self.mcp_manager.file_store[file_id]
-                        content_str = self._build_embedded_content(file_info)
+                # Tool calls detected; execute them
+                messages.append({"role": "assistant", "content": response_text, "tool_calls": tool_calls})
+                messages = await self._handle_tool_calls(messages, tool_calls)
 
-                        img_chunk = {
-                            "model": current_payload.get("model", "unknown"),
-                            "message": {
-                                "role": "assistant",
-                                "content": content_str
-                            },
-                            "done": False
-                        }
-                        logger.info(f"YIELDING FILE CHUNK FOR {file_id}, size: {len(file_info.get('data', ''))}")
-                        yield (json.dumps(img_chunk) + "\n").encode()
+                # --- Instantly stream any files generated by the tools to the frontend ---
+                import re
+                tool_contents = [str(m.get("content", "")) for m in messages[-len(tool_calls):]]
+                for i, content in enumerate(tool_contents):
+                    file_refs = re.findall(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", content)
+                    for file_id in file_refs:
+                        if hasattr(self.mcp_manager, "file_store") and file_id in self.mcp_manager.file_store:
+                            file_info = self.mcp_manager.file_store[file_id]
+                            content_str = self._build_embedded_content(file_info)
 
-                # Strip FILE_REFs from the message so the LLM doesn't hallucinate paths
-                if file_refs:
-                    strict_msg = "[File successfully generated and displayed directly to the user. Do NOT output any markdown image tags or file paths in your response. Just briefly summarize what the content represents.]"
-                    messages[-len(tool_calls) + i]["content"] = re.sub(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", strict_msg, messages[-len(tool_calls) + i]["content"])
-            # -------------------------------------------------------------------------
+                            img_chunk = {
+                                "model": current_payload.get("model", "unknown"),
+                                "message": {
+                                    "role": "assistant",
+                                    "content": content_str
+                                },
+                                "done": False
+                            }
+                            logger.info(f"YIELDING FILE CHUNK FOR {file_id}, size: {len(file_info.get('data', ''))}")
+                            yield (json.dumps(img_chunk) + "\n").encode()
 
-            # Check if we've reached the maximum number of rounds
-            current_round += 1
-            if max_rounds is not None and current_round >= max_rounds:
-                logger.warning(
-                    f"Reached maximum tool execution rounds ({max_rounds}), making final LLM call with tool results"
-                )
-                # Stream the final LLM response with tool results (no more tools allowed)
-                async for chunk in self._stream_final_llm_call(stream_ollama, payload, messages):
-                    # We might need to inject it here if we never yielded a chunk, but usually we did
-                    # in the first round. We'll just yield it.
-                    yield chunk
-                break
+                    # Strip FILE_REFs from the message so the LLM doesn't hallucinate paths
+                    if file_refs:
+                        strict_msg = "[File successfully generated and displayed directly to the user. Do NOT output any markdown image tags or file paths in your response. Just briefly summarize what the content represents.]"
+                        messages[-len(tool_calls) + i]["content"] = re.sub(r"\[FILE_REF:([a-zA-Z0-9-]+)\]", strict_msg, messages[-len(tool_calls) + i]["content"])
+                # ------------------------------------------------------------------------- 
+
+                # Check if we've reached the maximum number of rounds
+                current_round += 1
+                if max_rounds is not None and current_round >= max_rounds:
+                    logger.warning(
+                        f"Reached maximum tool execution rounds ({max_rounds}), making final LLM call with tool results"
+                    )
+                    # Stream the final LLM response with tool results (no more tools allowed)
+                    async for chunk in self._stream_final_llm_call(stream_ollama, payload, messages):
+                        if self._is_stop_requested(request_id):
+                            yield self._build_stop_chunk(payload)
+                            break
+                        yield chunk
+                    break
+        finally:
+            await self.clear_chat_request(request_id)
 
     def _extract_tool_calls(self, result: Dict[str, Any]) -> list:
         """Extract tool calls from response"""

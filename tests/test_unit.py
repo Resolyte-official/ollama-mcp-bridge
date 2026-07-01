@@ -268,6 +268,34 @@ async def test_pdf_file_refs_are_rendered_in_message_content():
     assert "<iframe" in content
 
 
+@pytest.mark.asyncio
+async def test_proxy_service_stop_request_tracking():
+    """Stop requests should register and clear active chat requests safely."""
+    try:
+        from ollama_mcp_bridge.mcp_manager import MCPManager
+        from ollama_mcp_bridge.proxy_service import ProxyService
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+        from ollama_mcp_bridge.mcp_manager import MCPManager
+        from ollama_mcp_bridge.proxy_service import ProxyService
+
+    manager = MCPManager()
+    service = ProxyService(manager)
+
+    assert await service.stop_chat_request(None) is False
+
+    request_id = "request-123"
+    event = await service.register_chat_request(request_id)
+    assert event is not None
+    assert not event.is_set()
+
+    assert await service.stop_chat_request(request_id) is True
+    assert event.is_set()
+
+    await service.clear_chat_request(request_id)
+    assert await service.stop_chat_request(request_id) is False
+
+
 def test_is_port_in_use():
     """Test the is_port_in_use utility."""
     import socket
